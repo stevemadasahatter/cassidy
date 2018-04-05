@@ -1,0 +1,52 @@
+@CHARSET "UTF-8";
+
+#select
+{
+	width:50%;
+	float:left;
+	position:absolute;
+	top:0px;
+	left:0px;
+	padding-left:10px;
+}
+
+#check
+{
+	width:50%;
+	float:right;
+	position:relative;
+}
+
+#result
+{
+	width:100%;
+	clear:both;
+	float:left;
+	top:190px;
+	position:relative;
+}
+
+h1
+{
+	font-family:calibri,arial;
+}
+
+p
+{
+	font-family:calibri,arial;
+}
+
+td
+{
+	font-family:calibri,arial;
+}
+
+th
+{
+font-family:calibri,arial;
+}
+
+background
+{
+	background-color:#eff;
+}

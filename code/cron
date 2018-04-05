@@ -1,0 +1,2 @@
+0,10,20,30,40,50 * * * * /usr/bin/php /var/www/updatedns.php >> /var/log/cron.log
+

@@ -1,0 +1,293 @@
+/* Top level divs */
+
+
+.receipt
+{
+	width:280px;
+	
+}
+
+table.receiptprt td, table.receiptprt th
+{
+	width:140px;
+	font-size:10pt;
+}
+
+.signame
+{
+	font-family:Calibri;
+	font-size:20pt;
+	font-weight:bold;
+}
+.tilllogin
+{
+	background-color:#000000;
+	position:fixed;
+	top:50%;
+	margin-top:-170px;
+	
+}
+h2
+{
+	padding:0px;
+	margin:0px;
+	font-size:18pt;
+	font-family:arial;
+	color:#75469b;
+	
+}
+
+#logo img
+{
+	width:300px;
+}
+
+#login input, #login select
+{
+	width:200px;
+}
+#login td, #login table
+{
+	text-align:center;
+}
+
+#page
+{
+	position:absolute;
+	width:100%;
+	height:100%;
+	margin:0px;
+	background-color:#ffffff;
+	top:0px;
+	left:0px;
+}
+
+#dialog
+{
+		position:absolute;
+		padding:20px;
+		border:1px solid #ddd;
+		z-index:10;
+		background-color:#ffffff;
+		display:none;
+		
+}
+#dimmer
+{
+	position:absolute;
+	top:0px;
+	left:0px;
+	z-index:9;
+	background-color:#000000;
+	opacity:0.8;
+	width:100%;
+	height:100%;
+	display:none;
+}
+#header
+{
+	box-sizing: border-box;
+	clear:both;
+	width:100%;
+	height:50px;
+	background-color:#f4d9df;
+}
+
+table.custdetail td
+{
+	font-size:12pt;
+}
+
+#dunno
+{
+	box-sizing: border-box;
+	float:left;
+	clear:both;
+	width:100%;
+	height:150px;
+}
+
+.section
+{
+	border-bottom:1px solid #ddd;
+}
+
+.ajax
+{
+	position:absolute;
+	z-index:1000;
+	width:300px;
+	top:131px;
+	left:62px;
+	display:hide;
+	background-color:#75469b;
+	color:#ffffff;
+}
+
+.subsection
+{
+	/* border:1px solid #eee; */
+}
+
+select, input
+{
+	height:35px;
+	width:300px;
+	font-size:12pt;
+}
+input[type=text]:focus, textarea:focus {
+  box-shadow: 0 0 5px rgba(81, 203, 238, 1);
+  padding: 3px 0px 0px 3px;
+  margin: 0px 0px 0px 0px;
+  border: 1px solid rgba(81, 203, 238, 1);
+}
+select option 
+{
+	font-size:16pt;
+}
+
+p, td.left, a
+{
+	font-size:12pt;
+	font-family:arial;
+	text-decoration:none;
+	text-align:left;
+	color:#75469b;
+}
+
+p, td.right, a
+{
+	font-size:12pt;
+	font-family:arial;
+	text-decoration:none;
+	text-align:right;
+	color:#75469b;
+}
+
+a
+{
+	color:#bbb;
+}
+
+li
+{
+	list-style:none;
+	font-family:arial;
+	font-size:16pt;
+	padding-bottom:5px;
+}
+
+.inactive
+{
+	  opacity: 0.4;
+   filter: alpha(opacity=40);
+}
+
+.itemresult
+{
+	font-family:calibri;
+	font-size:16pt;
+	min-width:60px;
+	text-align:center;
+}
+
+tr.itemheader
+{
+	background-color:#75469b;
+	
+}
+
+td.itemheader
+{
+	padding:5px;
+	font-size:12pt;
+	color:#ffffff;
+}
+
+.in
+{
+	background-color:#75469b;
+	color:#ffffff;
+	
+}
+
+.out
+{
+	background-color:#f4d9df;
+}
+
+.size
+{
+	background-color:#eee;
+}
+
+tr.bagheader
+{
+	background-color:#f4d9df;
+}
+
+td.bagheader, tr.bagheader td
+{
+	font-size:20pt;
+	font-weight:bold;
+}
+.bagtablehead
+{
+	background-color:#ffe;
+	
+}
+
+.totalhead
+{
+	background-color:#ffe;
+}
+
+.totalheadgrand, tr.totalheadgrant
+{
+	background-color:#ffe;
+	font-weight:bold;
+}
+
+.totalnum, tr.totalnum
+{
+	text-align:right;
+}
+
+.totalnumgrand, tr.totalnumgrand
+{
+	text-align:right;
+	font-weight:bold;
+}
+.openorders
+{
+	font-size:8pt !important;
+}
+.activeorder
+{
+	border:2px solid #ff0000 !important;
+}
+
+table.discbut td
+{
+	font-size:8pt;
+}
+
+table td
+{
+	font-family:arial;
+	padding-left:5px;
+	padding-right:5px;
+}
+
+table th
+{
+	font-weight:bold;
+	background-color:#ffe;
+	font-family:arial;
+
+}
+button
+{
+	min-width:80px;
+	min-height:40px;
+}

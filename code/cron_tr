@@ -1,0 +1,2 @@
+#0,5,10,15,20,25,30,35,40,45,50,55 * * * *  cd /var/www/backend/website;/usr/bin/php /var/www/backend/website/batch_subsystem.php >> /var/www/backend/website/batch_output.txt
+

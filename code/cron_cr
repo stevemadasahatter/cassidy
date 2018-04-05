@@ -1,0 +1,3 @@
+0,10,20,30,40,50 * * * *  cd /var/www/backend/website;/usr/bin/php /var/www/backend/website/batch_subsystem.php >> /var/www/backend/website/batch_output.txt
+00 18 * * * cd /var/www/backend/website;/usr/bin/php /var/www/backend/website/syncer_report.php
+
