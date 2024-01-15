@@ -3,7 +3,11 @@
 include '../config.php';
 include '../functions/field_func.php';
 include '../functions/barcode_func.php';
-require_once '/var/www/backend/functions/phpexcel/Classes/PHPExcel/IOFactory.php';
+require_once '../functions/vendor/phpoffice/phpspreadsheet/src/PhpSpreadsheet/IOFactory.php';
+require_once '../functions/vendor/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Exception.php';
+require_once '../functions/vendor/autoload.php';
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Exception;
 session_start();
 $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 
@@ -30,12 +34,12 @@ if ($action=="upload")
     		echo "Type: " . $_FILES["upload"]["type"] . "<br>";
     		echo "Size: " . ($_FILES["upload"]["size"] / 1024) . " kB<br>";
     		echo "Temp file: " . $_FILES["upload"]["tmp_name"] . "<br>";
-    	if (file_exists("/var/www/backend/tmp" . $_FILES["upload"]["name"])) {
+    	if (file_exists("$barcode_tmp" . $_FILES["upload"]["name"])) {
       		//echo $_FILES["upload"]["name"] . " already exists. ";
-    		move_uploaded_file($_FILES["upload"]["tmp_name"],"/var/www/backend/tmp/inprogress.xlsx");
+    		move_uploaded_file($_FILES["upload"]["tmp_name"],"$barcode_tmp/inprogress.xlsx");
     	} else {
       		move_uploaded_file($_FILES["upload"]["tmp_name"],
-      		"/var/www/backend/tmp/inprogress.xlsx");
+      		"$barcode_tmp/inprogress.xlsx");
 		$return=1;
     	}
   	}
@@ -43,14 +47,14 @@ if ($action=="upload")
 }
 if ($action=="read")
 {
-	$inputFileType = 'Excel2007';
-	$inputFileName = '/var/www/backend/tmp/inprogress.xlsx';	
-	$objReader = PHPExcel_IOFactory::createReader($inputFileType);
-	/** Load $inputFileName to a PHPExcel Object **/
+	$inputFileType = 'Xlsx';
+	$inputFileName = "$barcode_tmp/inprogress.xlsx";	
+	#$objReader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader($inputFileType);
+	$objReader = IOFactory::createReader($inputFileType);
+
+	/** Load $inputFileName to a \PhpOffice\PhpSpreadsheet\Spreadsheet Object **/
 	$objPHPExcel = $objReader->load($inputFileName);
-	echo "got here";
 	$worksheetData = $objReader->listWorksheetInfo($inputFileName);
-	echo "got here";
 	echo "<h2>Select sheets to process this import (SELECT ONLY 1 FOR NOW)</h2>";
 	echo "<table>";
 	$i=0;
@@ -69,14 +73,14 @@ if ($action=="read")
 if ($action=="readdata")
 {
 	#Read in config data
-        $inputFileType = 'Excel2007';
-        $inputFileName = '/var/www/backend/tmp/inprogress.xlsx';
-        $objReader = PHPExcel_IOFactory::createReader($inputFileType);
+        $inputFileType = 'Xlsx';
+        $inputFileName = "$barcode_tmp/inprogress.xlsx";
+        $objReader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader($inputFileType);
 		$objReader->setReadDataOnly(true);
-        /** Load $inputFileName to a PHPExcel Object **/
+        /** Load $inputFileName to a \PhpOffice\PhpSpreadsheet\Spreadsheet Object **/
 	$worksheetData = $objReader->listWorksheetInfo($inputFileName);
 
-class MyReadFilter implements PHPExcel_Reader_IReadFilter
+class MyReadFilter implements \PhpOffice\PhpSpreadsheet\Reader\IReadFilter
 {
         private $_startRow = 0;
         private $_endRow = 0;
@@ -296,6 +300,10 @@ where StockRef ='".$_REQUEST['sku']."'
 		$sku_add_brand=1;
 	}
 	
+	#slashes and spaces removal
+	$_REQUEST['sku']=str_replace("/", "", $_REQUEST['sku']);
+	$_REQUEST['sku']=str_replace(" ", "", $_REQUEST['sku']);
+	
 
 	#Change SKU
 	$oldsku=$_REQUEST['sku'];
@@ -317,13 +325,16 @@ where StockRef ='".$_REQUEST['sku']."'
 		
 	#Upload into database
 	# Style
-	$barcode=getNextBarcode();
 	$descr = $db_conn->real_escape_string($_REQUEST['description']);
-	$sql_query="insert into style (sku, company, description, sizekey, vatkey, onsale, barcode) values (";
-	$setClause="upper(\"".$_REQUEST['sku']."\"),".$_SESSION['CO'].",\"".$descr."\",".$_REQUEST['sizekey'].",".$_REQUEST['vatrate'].",0, $barcode)";
+	$sql_query="insert into style (sku, company, description, sizekey, vatkey, onsale) values (";
+	$setClause="upper(\"".$_REQUEST['sku']."\"),".$_SESSION['CO'].",\"".$descr."\",".$_REQUEST['sizekey'].",".$_REQUEST['vatrate'].",0)";
 	$sql_query=$sql_query.$setClause;
 	try {
-		$do_it=$db_conn->query($sql_query);
+	    $do_it=$db_conn->query('set autocommit=0');
+	    $do_it=$db_conn->query('lock tables style write');
+	    $do_it=$db_conn->query($sql_query);
+	    $do_it=$db_conn->query('unlock tables');
+	    $do_it=$db_conn->query('set autocommit=1');
 	}
 	catch (Exception $e) {
 		echo "";
@@ -345,7 +356,7 @@ where StockRef ='".$_REQUEST['sku']."'
 		echo "";
 	}
 
-	for ($i=1;$i<17;$i++)
+	for ($i=1;$i<=17;$i++)
 	{
 		if ($_REQUEST['size'.$i]=="")
 		{
@@ -356,11 +367,11 @@ where StockRef ='".$_REQUEST['sku']."'
 	$setClause="(upper(\"".$_REQUEST['sku']."\"),".$_SESSION['CO'].",upper(\"".$_REQUEST['colour']."\"),".$_REQUEST['size1'].",".$_REQUEST['size2'];
 	$setClause.=",".$_REQUEST['size3'].",".$_REQUEST['size4'].",".$_REQUEST['size5'].",".$_REQUEST['size6'].",".$_REQUEST['size7'].",";
 	$setClause.=$_REQUEST['size8'].",".$_REQUEST['size9'].",".$_REQUEST['size10'].",".$_REQUEST['size11'].",".$_REQUEST['size12'].",".$_REQUEST['size13']."
-			,".$_REQUEST['size14'].",".$_REQUEST['size15'].",".$_REQUEST['size16'].",\"".$_REQUEST['deliverymnth']."\",0";
+			,".$_REQUEST['size14'].",".$_REQUEST['size15'].",".$_REQUEST['size16'].",".$_REQUEST['size17'].",\"".$_REQUEST['deliverymnth']."\",0";
 	$setClause.=",".$_REQUEST['retail'].",".$_REQUEST['cost'].",1)";
 	
 	$sql_query="insert into stock (StockRef, company, colour, purchased1,purchased2,purchased3,purchased4,purchased5,purchased6,purchased7,purchased8,purchased9,purchased10
-		,purchased11,purchased12,purchased13,purchased14,purchased15,purchased16,deliverymnth, forsale, retailprice, costprice,web_status) values ";
+		,purchased11,purchased12,purchased13,purchased14,purchased15,purchased16, purchased17,deliverymnth, forsale, retailprice, costprice,web_status) values ";
 	$sql_query.=$setClause;
 	//echo $sql_query;
 	try {
@@ -435,7 +446,8 @@ function propagate(type)
 {
 	var setID=$('select[name='+type+'master]').val();
 	setID=setID;
-	$('div[id^=item]').find('select[name='+type+']>option:eq('+setID+')').prop('selected',true);
+	//$('div[id^=item]').find('select[name='+type+']>option:eq('+setID+')').prop('selected',true);
+	$('div[id^=item]').find('select[name='+type+']').val(setID);
 }
 
 function commit()

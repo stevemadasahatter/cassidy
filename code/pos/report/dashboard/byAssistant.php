@@ -27,7 +27,7 @@ $sql_query="
 select u.username Grp
 	, sum(od.qty) Qty
     , round((sum(od.qty/summs.qty))*100,1) '%Qty'
-    , sum(if (od.zero_price=1,0,(if (abs(od.actualgrand) > 0, od.actualgrand*abs(od.qty),od.grandTot*abs(od.qty))))) Value
+    , round(sum(if (od.zero_price=1,0,(if (abs(od.actualgrand) > 0, od.actualgrand*abs(od.qty),od.grandTot*abs(od.qty))))),2) Value
 	, round((sum((if(abs(od.actualgrand)>0,od.actualgrand, od.grandTot)*abs(od.qty))/summs.vals))*100,1) '%Value'
 from orderdetail od, orderheader oh, users u
 cross join

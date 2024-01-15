@@ -1,22 +1,24 @@
 <?php
 
-$installed_base="/var/www/pos";
-$domain=".mooo.com";
-$base_url="http://192.168.1.66";
+$domain=".local";
+$base_url="http://localhost.local";
+$title_tag="Coco Sales";
 
 $db_username="till";
 $db_password="secure";
-$db_host="localhost";
+$db_host="172.17.0.1";
 $db_name="till";
 
 $timeout=86400;
+$pics_path="/backend/images/product";
 
 #Name of printer as defined in CUPS for printing receipts
-$receipt_printer="receipt3";
-$receipt_host="192.168.1.66:631";
+$local_printer=0;
+$local_printer_path='/pos/tmp';
+$local_printer_drawer="192.168.1.14";
+$receipt_printer="PDF";
 $receipt_tmp="/var/www/pos/tmp";
 $barcode_printer="PDF";
+$kibana_host="https://cassidy.cocorose.co.uk";
 
-//$debug=1;
-$pics_path="/backend/images/product";
 ?>

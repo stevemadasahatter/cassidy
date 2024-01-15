@@ -1,3 +1,6 @@
 0,10,20,30,40,50 * * * *  cd /var/www/backend/website;/usr/bin/php /var/www/backend/website/batch_subsystem.php >> /var/www/backend/website/batch_output.txt
-00 18 * * * cd /var/www/backend/website;/usr/bin/php /var/www/backend/website/syncer_report.php
-
+0,10,20,30,40,50 * * * *  cd /var/www/backend/website;/usr/bin/php /var/www/backend/website/batch_sub_m2.php >> /var/www/backend/website/batch_output_m2.txt
+05 18  * * *  cd /var/www/backend/website;/usr/bin/php /var/www/backend/website/syncer_report.php 
+05 18 * * * /var/www/backend/report/automated.sh
+00 *  * * * /usr/bin/php /var/www/updatedns-cr.php
+00 03 */2 * * > /var/www/backend/website/batch_output_m2.txt

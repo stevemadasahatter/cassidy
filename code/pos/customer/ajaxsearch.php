@@ -9,7 +9,7 @@ if ($page=="")
 	$page=0;
 }
 
-$limit=($page*15).',15';
+$limit=50;
 
 $search=urldecode($_REQUEST['s']);
 $search=addslashes($search);
@@ -26,12 +26,27 @@ if ($_REQUEST['type']=='name')
 			where concat(forename,' ',lastname) like '%".$search."%'
 			order by forename asc limit $limit ";
 }
-else
+elseif ($_REQUEST['type']=="email")
 {
-	$sql_query="select forename, lastname, custid, addr1, postcode
+    $sql_query="select forename, lastname, custid, email
 			from customers
-			where (addr1 like  '%".$search."%'
-					or postcode like '%".$search."%')
+			where email like '%".$search."%'
+			order by forename asc limit $limit ";
+    
+}
+elseif ($_REQUEST['type']=="addr")
+{
+    $sql_query="select forename, lastname, custid, addr1, addr2,postcode
+			from customers
+			where (concat(addr1,addr2,postcode) like '%".$search."%')
+			order by forename asc limit $limit ";
+    
+}
+elseif ($_REQUEST['type']=="phone")
+{
+	$sql_query="select forename, lastname, custid, mobile,landline
+			from customers
+			where (concat(mobile,landline) like '%".$search."%')
 			order by forename asc limit $limit ";
 }
 
@@ -46,10 +61,6 @@ if ($page>=1)
 while ($person=mysqli_fetch_array($results))
 {
 	echo "<li class=result onclick=\"javascript:selectCust(".$person['custid'].")\" >".$person['forename']." ".$person['lastname']." ".$person['addr1']." ".$person['postcode']."</li>";
-}
-if ($num_rows >= 15)
-{
-	echo "<li onclick=\"javascript:nextPage(".($page+1).",'".$_REQUEST['s']."','".$_REQUEST['type']."');\" class=result style=\"text-align:center;padding:0px;background:#777;\" ><img src=./images/down.png /></li>";
 }
 echo "</ul>";
 ?>

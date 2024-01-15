@@ -2,10 +2,8 @@
 
 include '../config.php';
 include '../functions/auth_func.php';
-ini_set('DISPLAY_ERRORS',1);
 session_start();
 $auth=check_auth();
-$action=$_REQUEST['action'];
 $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 $action=$_REQUEST['action'];
 
@@ -23,7 +21,7 @@ $_REQUEST['postcode']=strtoupper($_REQUEST['postcode']);
 
 if ($action=="edit")
 {	
-	$custref=$_SESSION['custref'];
+	$custref=$_REQUEST['custref'];
 	$sql_query="select title, forename, lastname, addr1, addr2, addr3, addr4, addr5, postcode, landline, mobile, 
 				date_format(dob, '%d/%m/%Y') dob, email, emailmkt, textmkt from customers where 1=1 and  custid =".$custref;
 	$company=getTillCompany($_COOKIE['tillIdent']);
@@ -76,6 +74,7 @@ elseif ($action=="update")
 	}
 	else
 	{
+		$_SESSION['custref']=$_REQUEST['custref'];
 		$setClause=" title='".$_REQUEST['title']."',forename=\"".$_REQUEST['forename']."\",lastname=\"".$_REQUEST['lastname']."\",addr1=\"".$_REQUEST['addr1']."\",addr2=\"";
 		$setClause.=$_REQUEST['addr2']."\",addr3=\"".$_REQUEST['addr3']."\",addr4='".$_REQUEST['addr4']."',addr5='".$_REQUEST['addr5']."',postcode='".$_REQUEST['postcode']."',landline='";
 		$setClause.=$_REQUEST['landline']."',mobile='".$_REQUEST['mobile']."',email='".$_REQUEST['email']."',company=".$company.",textmkt=".$_REQUEST['textmkt'].",emailmkt=".$_REQUEST['emailmkt'];

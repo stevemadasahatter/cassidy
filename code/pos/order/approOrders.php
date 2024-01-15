@@ -20,12 +20,12 @@ if ($action=="load")
 
 
 $sql_query="select customers.forename, customers.lastname,customers.custid,orderheader.transno
-		, date_format(orderheader.transDate,'%d-%m-%Y %H:%i:%s') transDate
+		, date_format(orderheader.transDate,'%d-%m-%Y') transDate
 		, count(*) nbr 
 		, sum(if(orderdetail.actualgrand>0,orderdetail.actualgrand,orderdetail.grandTot)) grandTot
 		from orderheader, orderdetail, customers 
 		where orderheader.transno=orderdetail.transno
-		and orderheader.custref=customers.custid ";
+		and orderheader.custref=customers.custid";
 
 if ($action=="cust")
 {
@@ -41,7 +41,7 @@ if ($action=="all")
 if ($action=="cust" || $action=="all")
 {
 	$sql_query.=" and orderdetail.status='A' group by customers.forename, customers.lastname,orderheader.transno, orderheader.transDate
-			 order by 1,5";
+			 order by 1,4";
 	$results=$db_conn->query($sql_query);
 	
 	echo "<table width=100%><tr class=bagheader><td>Customer</td><td>Order Number</td><td>Items</td><td>Total</td><td>Date of Order</td></tr>";

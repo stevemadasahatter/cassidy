@@ -701,7 +701,7 @@ table.receipt th
 #vouchers
 {
 	width:680px;
-	height:300px;
+	height:600px;
 	display:none;
 	z-index:999;
 	margin:10px auto;
@@ -709,6 +709,8 @@ table.receipt th
 	background-color:#ffffff;
 	top:15%;
 	left:8%;
+	overflow-y: auto;
+	border:20px solid #eee;
 	
 }
 

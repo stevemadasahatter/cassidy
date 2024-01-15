@@ -1,7 +1,6 @@
 <?php
 include_once '../config.php';
 
-$db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 
 function getColour($colour)
 {
@@ -122,7 +121,7 @@ function search($array, $key, $value)
 	$val_len=strlen($value);
 	$value2=strtolower($value);
 	if (is_array($array)) {
-		if (isset($array[$key]) && strtolower(substr($array[$key],0, $val_len)) == $value2) {
+		if (isset($array[$key]) && strtolower(substr($array[$key],0)) == $value2) {
 			$results[] = $array;
 		}
 
@@ -210,20 +209,34 @@ function create_web_item()
 	$results=$db_conn->query($sql_query);
 	while ($result=mysqli_fetch_array($results))
 	{
-	#We need to create these products
-	# Get the addition data needed - sizes and price
-	$sql_query2 = "select s.physical1, s.physical2, s.physical3, s.physical4, s.physical5, s.physical6, s.physical7,
-	s.physical8, s.physical9, s.physical10, sz.size1, sz.size2,sz.size3,sz.size4,sz.size5,sz.size6,
-	sz.size7,sz.size8,sz.size9,sz.size10,sz.size11,sz.size12,sz.size13,sz.size14,sz.size15,sz.size16,sz.size17,sz.size18,sz.size19,sz.size20, st.onsale, s.retailprice, s.saleprice
-	from stock s, style st, sizes sz
-	where 1=1
-	and s.Stockref = st.sku
-	and st.sizekey = sz.sizekey
-	and s.colour = '".$result['col']."'
-	and s.Stockref = '".$result['sku']."'";
-	$results2=$db_conn2->query($sql_query2);
-	$stock=stockBalance($result['sku'], $result['col'],'');
-	
+	    try
+	    {
+	        #If it exists we do nothing but update
+	        $colours=$proxy->call($sessionId, 'catalog_product.info',$result['sku']."-".$result['col']);
+	        echo $result['sku']."-".$result['col']." Already exists";
+	        $sql_query="update stock set web_uploaded=1 where Stockref='".$result['sku']."' and colour = '".$result['col']."'";
+	        $doit=$db_conn2->query($sql_query);
+	    }
+	    
+	    catch (Exception $e)
+	    {
+	        #We need to create these products
+	        # Get the addition data needed - sizes and price
+	        $sql_query2 = "select s.physical1, s.physical2, s.physical3, s.physical4, s.physical5, s.physical6, s.physical7,
+        	s.physical8, s.physical9, s.physical10, sz.size1, sz.size2,sz.size3,sz.size4,sz.size5,sz.size6,
+        	sz.size7,sz.size8,sz.size9,sz.size10,sz.size11,sz.size12,sz.size13,sz.size14,sz.size15,sz.size16,sz.size17,sz.size18,sz.size19,sz.size20, st.onsale, s.retailprice, s.saleprice
+        	from stock s, style st, sizes sz
+        	where 1=1
+        	and s.Stockref = st.sku
+        	and st.sizekey = sz.sizekey
+        	and s.colour = '".$result['col']."'
+        	and s.Stockref = '".$result['sku']."'";
+	        $results2=$db_conn2->query($sql_query2);
+	        $stock=stockBalance($result['sku'], $result['col'],'');
+
+	    }
+    	
+    	
 		while ($result2=mysqli_fetch_array($results2))
 		{
 		$configurable_skus=array();
@@ -268,13 +281,17 @@ function create_web_item()
 					{
 					    $sizeGroup="trousers";
 					}
+					elseif ($result['sizeGroup']=='581')
+					{
+					    $sizeGroup="jqsize";
+					}
 				
 				# Create variant simple product
 				$productData = array(
 				'name' => $result['name'],
 				'description' => $result['description'],
 				'short_description' => $result['description'],
-							'website_ids' => array('base'), // Id or code of website
+							'website_ids' => array($website_id), // Id or code of website
 									'status' => 1, // 1 = Enabled, 2 = Disabled
 							         'visibility' => 1, // 1 = Not visible, 2 = Catalog, 3 = Search, 4 = Catalog/Search
 							        'tax_class_id' => 2, // Default VAT
@@ -327,7 +344,7 @@ function create_web_item()
 			'name' => $result['name'],
 			'description' => $result['description'],
 			'short_description' => $result['description'],
-			'website_ids' => array('base'), // Id or code of website
+			'website_ids' => array($website_id), // Id or code of website
 			'status' => 1, // 1 = Enabled, 2 = Disabled
 			'visibility' => 4, // 1 = Not visible, 2 = Catalog, 3 = Search, 4 = Catalog/Search
 			'tax_class_id' => 2, // Default VAT
@@ -368,31 +385,63 @@ function create_web_item()
 			}
 				
 			$photos=explode("|",$result['photo']);
+			$firsttimethru=0;
 			foreach ($photos as $photo)
 			{
 				$filetype=explode(".",$photo);
-				if ($filetype[1]=="png")
+				if (exif_imagetype($pics_path.'/'.$photo)) 
 				{
-					$mime="image/png";
+				    
+    				if ($filetype[1]=="png")
+    				{
+    					$mime="image/png";
+    				}
+    				else
+    				{
+    					$mime="image/jpeg";
+    				}
+    				if ($firsttimethru==0)
+    				{
+    				    $image = array(
+    						'file' => array(
+    								'name' => $photo,
+    								'content' => base64_encode(file_get_contents($pics_path.'/'.$photo)),
+    								'mime'    => $mime
+    						),
+    						'label'    => $result['description'],
+    						'position' => 2,
+    						'types'    => array('small_image','image', 'thumbnail'),
+    						'exclude'  => 0
+    				    );
+    				}
+    				else 
+    				{
+    				    $image = array(
+    				        'file' => array(
+    				            'name' => $photo,
+    				            'content' => base64_encode(file_get_contents($pics_path.'/'.$photo)),
+    				            'mime'    => $mime
+    				        ),
+    				        'label'    => $result['description'],
+    				        'position' => 2,
+    				        'types'    => array(),
+    				        'exclude'  => 0
+    				    );
+    				}
+    				$firsttimethru=1;
 				}
 				else
 				{
-					$mime="image/jpeg";
+				    $photo="";
 				}
-				$image = array(
-						'file' => array(
-								'name' => $photo,
-								'content' => base64_encode(file_get_contents($pics_path.'/'.$photo)),
-								'mime'    => $mime
-						),
-						'label'    => $result['description'],
-						'position' => 2,
-						'types'    => array('small_image','image', 'thumbnail'),
-						'exclude'  => 0
-				);
 				if ($photo<>"")
 				{
-					$imageFilename = $proxy->call($sessionId, 'product_media.create', array($result['sku'].'-'.$result['col'], $image));
+				    try {
+				        $imageFilename = $proxy->call($sessionId, 'product_media.create', array($result['sku'].'-'.$result['col'], $image));
+				    } catch (SoapFault $e) {
+				        echo '<p style="color:red;">Image insert into configurable '.$result['sku'].'-'.$result['col'].'failed.'.$e -> getMessage().'</p>';
+				    }
+					
 				}
 			}
 				
@@ -405,15 +454,13 @@ function create_web_item()
 				
 			if ($products)
 			{
-			syslog(LOG_INFO,"Created configurable for ".$result['sku'].'-'.$result['col']."\n");
-					//$output.="Created configurable for ".$result['sku'].'-'.$result['col']."\n";
+					echo "Created configurable for ".$result['sku'].'-'.$result['col']."\n";
 					$sql_query="update stock set web_uploaded=1 where Stockref='".$result['sku']."' and colour = '".$result['col']."'";
-							$doit=$db_conn->query($sql_query);
+					$doit=$db_conn->query($sql_query);
 			}
 			else
 			{
-				//$output.="Failed to create ".$result['sku'].'-'.$result['col']."\n";
-				syslog(LOG_CRIT,"Failed to create ".$result['sku'].'-'.$result['col']."\n");
+				echo "Failed to create ".$result['sku'].'-'.$result['col']."\n";
 				$sql_query="update stock set web_uploaded=1 where Stockref='".$result['sku']."' and colour = '".$result['col']."'";
 				$doit=$db_conn->query($sql_query);
 			}
@@ -461,7 +508,7 @@ select sa.sku, sa.colour, sa.sizeid
 	where sto.Stockref = sa.sku
 	and sto.colour = sa.colour
 	and sto.web_uploaded =1
-	and sa.datetrack > current_date()";
+	and sa.datetime > current_date()";
 
 	$results=$db_conn->query($sql_query);
 	
@@ -505,7 +552,14 @@ select sa.sku, sa.colour, sa.sizeid
 			}
 			
 			#Get Website current
-			$webrecord=$proxy->call($sessionId, 'product_stock.list', array($variantsku));
+			try
+			{
+			    $webrecord=$proxy->call($sessionId, 'product_stock.list', array($variantsku));
+			}
+			catch (Exception $e)
+			{
+			    echo $e."Failed to get stock list. \n";
+			}
 
 			#Perform update if they differ, save time if they don't. Report difference
 			if ((int)$webrecord[0]['qty']==($stockbalance['physical'.$i]-$stockbalance['appro'.$i]))
@@ -520,7 +574,7 @@ select sa.sku, sa.colour, sa.sizeid
 				}
 				catch (Exception $e)
 				{
-					echo $e."\n";
+					echo $e."Failed to update stock item \n";
 				}
 				echo "--> Set ".$variantsku[0]." from ".$webrecord[0]['qty']." to ".($stockbalance['physical'.$i]-$stockbalance['appro'.$i])."\n";
 				$type="S";
@@ -570,7 +624,7 @@ function change_web_special_price()
 	$db_conn2=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 
 	# For every SKU with a sale price which is onsale we will update the website
-	$sql_query="select sto.StockRef, sto.colour, max(sto.saleprice) saleprice
+	$sql_query="select sto.StockRef, sto.colour, max(sto.saleprice) saleprice, max(sto.retailprice)
 	from stock sto, style
 	where 1=1
     and sto.Stockref = style.sku

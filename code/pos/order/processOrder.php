@@ -231,18 +231,23 @@ elseif ($action=="complete")
 		}
 		echo "</tr></table>";
 		
-		if ($refund==0)
+		if ($refund==0 && $outstanding<>0)
 		{
 			$split_html.="<td><button id=splittot style=\"font-size:10pt;\" onclick=\"javascript:split_pay($outstanding, $refund);\" disabled>Enter<br>Amounts</button>
 			<br><button id=canbut onclick=\"javascript:cancelDiag();\">Cancel</button><br><span style=font-size:9pt;>Outstanding</span><br><input style=width:55px;text-align:center; id=outamnt type=text value=$outstanding disabled></input></td></tr></table>";
 			
 		}
-		elseif ($refund==1)
+		elseif ($refund==1 && $outstanding<>0)
 		{
 			$split_html.="<td><button id=splittot  style=\"font-size:10pt;\" onclick=\"javascript:split_pay($outstanding, $refund);\" disabled>Enter<br>Refund</button>
 			<br><button id=voucher onclick=\"javascript:creditNote();\" >Credit Note</button>
 			<br><button id=canbut style=\"width:85px;\" onclick=\"javascript:cancelDiag();\">Cancel</button></td></tr></table>";
 			//$split_html.="<td><input id=voucher type=checkbox onclick=\"javascript:creditNote();\" /><label style=\"font-size:10pt;\" for=\"voucher\">Produce Credit Note</label>";
+		}
+		elseif ($outstanding==0)
+		{
+		    $split_html.="<td><button id=splittot style=\"font-size:10pt;\" onclick=\"javascript:split_pay($outstanding, $refund);\">CONFIRM</button>
+			<br><button id=canbut onclick=\"javascript:cancelDiag();\" disabled>Cancel</button><br><span style=font-size:9pt;>Outstanding</span><br><input style=width:55px;text-align:center; id=outamnt type=text value=$outstanding disabled></input></td></tr></table>";
 		}
 		
 		echo "<div id=splitdiv>";		
@@ -311,7 +316,7 @@ elseif ($action=="appro")
 	}
 	
 	#Find lines which need putting on appro
-	$sql_query="select lineno from orderdetail where status = 'P' and transno =".$_SESSION['orderno'];
+	$sql_query="select lineno from orderdetail where status = 'P' and transno =".$_SESSION['orderno']." order by lineno";
 	$lines=$db_conn->query($sql_query);
 	while ($line=mysqli_fetch_array($lines))
 	{
@@ -326,14 +331,25 @@ elseif ($action=="appro")
 		echo "<p>Deposit of £".number_format($_REQUEST['depnote'],2)." has been taken</p>";
 	}
 	
-	echo "<button style=\"font-size:9pt;\" onclick=\"receipt('print', ".$_SESSION['orderno'].")\">Print Receipt</button>";
+	if ($changedue=="")
+	{
+	    $changedue=0;
+	}
+	if ($local_printer==1)
+        {
+            echo "<button style=\"font-size:8pt;\" onclick=\"printJS('$local_printer_path/printing.pdf');\">Print Receipt</button>";
+        }
+        else
+        {
+            echo "<button style=\"font-size:8pt;\" onclick=\"receipt('print', ".$_SESSION['orderno'].",$changedue, 'true')\">Print Receipt</button>";
+        }
 	$custDetail=getCustomer($_SESSION['orderno']);
 	if ($custDetail['email']<>"")
 	{
 		echo "<button style=\"font-size:9pt;\" onclick=\"receipt('email', ".$_SESSION['orderno'].")\">Email Receipt</button>";
 	}
 	echo "<button onclick=\"javascript:closeDiag();\">Close</button><br>";
-	echo "<script type=text/javascript>receipt('print', ".$_SESSION['orderno'].");</script>";
+	echo "<script type=text/javascript>receipt('print', ".$_SESSION['orderno'].", $changedue, 'false');</script>";
 	echo "<div id=receipt></div>";
 	echo "<script type=text/javascript>$('button').button();</script>";
 	
@@ -354,6 +370,7 @@ elseif ($action=="pay")
 		$_REQUEST['voucherid']="NULL";
 	}
 	$totals=bagTotals();
+	$origtotal=$totals['outstanding'];
 	if ($totals['discount']=="")
 	{
 		$totals['discount']=0;
@@ -516,10 +533,10 @@ elseif ($action=="pay")
 			$voucher=getSpendPot($voucherid,$vouchertypes[$n]);
 			$cleardown=createSpendPot($voucher['type'], 'clear', NULL, $_SESSION['custref'], $_SESSION['orderno'], '', $voucherid,'');
 			
-			if ($totals['outstanding']<$voucher['amount'])
+			if ($origtotal<$voucher['amount'])
 			{ 
 				#Create new voucher for the remainder
-				$overflow=($voucher['amount'] - $totals['outstanding']);
+			    $overflow=($voucher['amount'] - $origtotal);
 				#Create new voucher for the remainder
 				$tenderNo=getMaxSpendTender()+1;
 
@@ -537,14 +554,46 @@ elseif ($action=="pay")
 				$sql_query="update tenders set payValue=".($voucher['amount']-$overflow)." where transno = ".$_SESSION['orderno']." and PayMethod = $tenderType";
 				$doit=$db_conn->query($sql_query);
 				printSpendPot($newvoucher);
+				$two_outputs=1;
 			}
 			$n++;
 		}
 	}
-	echo "<button style=\"font-size:8pt;\" onclick=\"receipt('print', ".$_SESSION['orderno'].",$changedue)\">Re-print Receipt</button>";
-	echo "<button onclick=\"receipt('gift', ".$_SESSION['orderno'].", $changedue)\">Gift Receipt</button>";
+	echo "<p class=appro>Transaction Complete</p>";
 	
-	echo "<script type=text/javascript>receipt('print', ".$_SESSION['orderno'].", $changedue);</script>";
+	if ($changedue=="")
+	{
+	    $changedue=0;
+	}
+	
+	if ($two_outputs==1)
+	{
+    	if ($local_printer==1)
+    	{
+    	    echo "<button style=\"font-size:8pt;\" onclick=\"printJS('$local_printer_path/printing.pdf');\">Print Receipt</button>";
+    	    echo "<button style=\"font-size:8pt;\" onclick=\"printJS('$local_printer_path/last.pdf');\">Print Voucher</button>";
+    	}
+    	else 
+    	{
+    	    echo "<button style=\"font-size:8pt;\" onclick=\"receipt('print', ".$_SESSION['orderno'].",$changedue, 'true')\">Print Receipt</button>";
+    	    echo "<button style=\"font-size:8pt;\" onclick=\"receipt('last')\">Print Voucher</button>";
+    	}
+	}
+	else 
+	{
+	    if ($local_printer==1)
+	    {
+	        echo "<button style=\"font-size:8pt;\" onclick=\"printJS('$local_printer_path/printing.pdf');\">Print Receipt</button>";
+	    }
+	    else
+	    {
+	        echo "<button style=\"font-size:8pt;\" onclick=\"receipt('print', ".$_SESSION['orderno'].",$changedue, 'true')\">Print Receipt</button>";
+	    }
+	}
+	
+	echo "<button onclick=\"receipt('gift', ".$_SESSION['orderno'].", $changedue, 'true')\">Gift Receipt</button>";
+	
+    echo "<script type=text/javascript>receipt('print', ".$_SESSION['orderno'].", $changedue,'false');</script>";
 	
 	$custDetail=getCustomer($_SESSION['orderno']);
 	if ($custDetail['email']<>"")
@@ -564,14 +613,39 @@ elseif ($action=="pay")
 	$paid=getTenderTotals();	
 	$lines=bagTotals();
 	$tillsession=getTillSession($_COOKIE['tillIdent']);
-	$actualpaid=$paid['paid']-($paid['paid']/100*$lines['discount']);
-	$actualnet=$paid['net']-($paid['net']/100*$lines['discount']);
-	$actualvat=$paid['vat']-($paid['vat']/100*$lines['discount']);
+	if ($paid['paid']=='')
+	{
+	    $actualpaid=0;
+	}
+	else 
+	{
+	   $actualpaid=$paid['paid'];
+	}
+	
+	if ($paid['net']=='')
+	{
+	    $actualnet=0;
+	}
+	else
+	{
+	    $actualnet=$paid['net'];
+	}
+	
+	if ($paid['vat']=='')
+	{
+	    $actualvat=0;
+	}
+	else
+	{
+	    $actualvat=$paid['vat'];
+	}
+	
 	$sql_query="update orderheader set till_session=$tillsession,status='C', 
 			till='".$_COOKIE['tillIdent']."', cashierid = '".$_SESSION['POS']."',
 			grandTot = ".$actualpaid." , discount= ".$lines['discount']."
 			, netTot = ".$actualnet." , vatTot = ".$actualvat." , transDate = now()
 			where transno = ".$_SESSION['orderno'];
+
 	$result=$db_conn->query($sql_query);
 	
 //	$_SESSION['orderno']="";
@@ -717,10 +791,36 @@ elseif ($action=="credit")
 			echo "<h2>Credit note for balance of ".($voucher['amount'] - $totals['outstanding'])." will be printed</h2>";
 		}
 	}
-	echo "<button onclick=\"receipt('print', ".$_SESSION['orderno'].")\">Re-print Receipt</button>";
-	echo "<button onclick=\"receipt('gift', ".$_SESSION['orderno'].")\">Gift Receipt</button>";
 	
-	echo "<script type=text/javascript>receipt('print', ".$_SESSION['orderno'].", $changedue);</script>";
+	if ($changedue=="")
+	{
+	    $changedue=0;
+	}
+	
+	if ($local_printer==1)
+	{
+	    echo "<button style=\"font-size:8pt;\" onclick=\"printJS('$local_printer_path/printing.pdf');\">Print Receipt</button>";
+	}
+	else
+	{
+	    echo "<button style=\"font-size:8pt;\" onclick=\"receipt('print', ".$_SESSION['orderno'].",$changedue,'true')\">Print Receipt</button>";
+	}
+	echo "<button onclick=\"receipt('gift', ".$_SESSION['orderno'].", 0)\">Gift Receipt</button>";
+	
+	echo "<script type=text/javascript>receipt('print', ".$_SESSION['orderno'].", 0,'false');</script>";
+	
+	$custDetail=getCustomer($_SESSION['orderno']);
+	if ($custDetail['email']<>"")
+	{
+	    echo "<button onclick=\"receipt('email', ".$_SESSION['orderno'].")\">Email Receipt</button>";
+	}
+	echo "<button onclick=\"javascript:closeDiag();\">Close</button><br>";
+	if ($opendrawer==1)
+	{
+	    openDrawer(1);
+	}
+		
+	echo "<script type=text/javascript>receipt('print', ".$_SESSION['orderno'].", 0,'false');</script>";
 	$custDetail=getCustomer($_SESSION['orderno']);
 	if ($custDetail['email']<>"")
 	{
@@ -758,6 +858,7 @@ elseif ($action=="creditnote")
 	if ($_REQUEST['reprint']==1)
 	{
 		printSpendPot($_REQUEST['note']);
+		exit();
 	}
 	else 
 	{
@@ -792,8 +893,16 @@ elseif ($action=="creditnote")
 			where transno = ".$_SESSION['orderno'];
 		$result=$db_conn->query($sql_query);
 		createRollEntry($_SESSION['custref'], "Credit Note - $success", '', $_REQUEST['amnt'], 'C');
-        echo "<script type=text/javascript>$('#canbut').prop('disable',true);</script><p width=100% align=right><button style=\"font-size:10pt;\" onclick=javascript:reprintC('".$success."');>Reprint Credit Note</button>
-        		<button onclick=\"javascript:location.reload();\">Close</button></p>";
+        echo "<script type=text/javascript>$('#canbut').prop('disable',true);</script><p width=100% align=right>";
+        if ($local_printer==1)
+        {
+            echo "<button style=\"font-size:10pt;\" onclick=\"javascript:printJS('$local_printer_path/printing.pdf');\">Print Credit Note</button>";
+        }
+        else
+        {
+            echo "<button style=\"font-size:10pt;\" onclick=javascript:reprintC('".$success."');>Reprint Credit Note</button>";
+        }
+        echo "<button onclick=\"javascript:location.reload();\">Close</button></p>";
         
         $sql_query="update orderdetail set status='C' where transno = ".$_SESSION['orderno']." and status = 'P'";
         $result=$db_conn->query($sql_query);
@@ -818,7 +927,6 @@ $(document).ready(function(){
 	        modal: true
 	      });
      $('#vouchercode').focus();
-     $('#splittot').prop('disabled','disabled');
 });
 
 function updateChange()
@@ -838,6 +946,10 @@ function cancelDiag()
 
 function cardType(id,type, refund)
 {
+	if ($('#finishdetail').length>0)
+	{
+		return;
+	}
 	$('#splittot').disable=false;
 	if (id==8 || id==9 || id==10)
 	{
@@ -887,7 +999,15 @@ function cardType(id,type, refund)
 		{
 			$('#pt'+id).val(amnt2);
 		}
-		updateSplit(amnt2, refund);
+		else
+		{
+			$('#splitdiv input[type=text], #splitdiv [id^="pt"]').each(function(){
+				this.value='0.00';
+			});
+			$('#pt'+id).val($('#amntout').val()*100);
+			var amnt2=$('#amntout').val();
+		}
+		updateSplit(outstanding, refund);
 	}
 }
 
@@ -921,9 +1041,9 @@ $('#vouchsearch').click(function()
 	$('#vouchers').load('./order/vouchersearch.php?type='+type);
 });
 
-function receipt(type, orderno, changedue)
+function receipt(type, orderno, changedue, output)
 {
-	$('#receipt').load('./order/receipt.php?type='+type+'&orderno='+orderno+'&changedue='+changedue);
+	$('#receipt').load('./order/receipt.php?type='+type+'&orderno='+orderno+'&changedue='+changedue+'&output='+output);
 }
 
 function split_pay(outstanding, refund)
@@ -965,6 +1085,10 @@ function split_pay(outstanding, refund)
 		$('#canbut').button({
 			disabled: true
 		});
+
+		$('#appro').button({
+			disabled: true
+		});
 	}
 }
 
@@ -984,7 +1108,7 @@ function updateSplit(outstanding,refund)
 	});
 	var rounded=Math.round((outstanding - total)*100)/100;
 
-	if (rounded <= 0)
+	if (rounded == 0)
 	{
 		if (refund==0)
 		{	
@@ -993,6 +1117,27 @@ function updateSplit(outstanding,refund)
 				disabled: false
 			});
 			$('#outamnt').val('0.00');
+		}
+
+	}
+	else if (rounded < 0 )
+	{
+		if (refund==0 && $('#pt1').val()==0 && $('#pt8').val()==0 && $('#pt9').val()==0 && $('#pt10').val()==0)
+		{	
+			var buttext="OVER<br>AMOUNT";
+			$('#splittot').button({
+				disabled: true
+			});
+			$('#outamnt').val(rounded);
+		}
+		else if (refund==0 && ($('#pt1').val()> 0 || $('#pt8').val()>0 || $('#pt9').val()>0 || $('#pt10').val()>0))
+		{
+			var buttext="Confirm<br>Amounts";
+			$('#splittot').button({
+				disabled: false
+			});
+			$('#outamnt').val(rounded);
+
 		}
 		if (refund==1)
 		{	
@@ -1070,7 +1215,8 @@ $('#vouchconfirm').click(function(){
 	var pt10=($('#pt10').val())*100;
 	var voucheramnttxt=$('#voucheramnt').text();
 	var vouchlen=voucheramnttxt.length;
-	var voucheramnt=voucheramnttxt.substring(2,vouchlen)*100;
+	var voucheramnt=Math.round(voucheramnttxt.substring(2,vouchlen)*100,0);
+
 	
 	var voucherid=$('#voucherid').val();
 	var voucheridtype=$('#voucheridtype').val();
@@ -1104,6 +1250,9 @@ $('#vouchconfirm').click(function(){
 		$('#vouchconfirm').button({
 			disabled: true
 		});
+               $('#voucherform').slideUp('fast');
+                $('#vouchercode').val('');
+
 	}
 });
 

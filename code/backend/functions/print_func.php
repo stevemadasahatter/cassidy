@@ -2,7 +2,7 @@
 
 function printReport($html,$orient)
 {
-	$print=print_action($html, $main_printer);
+	$print=print_action($html, $main_printer,$orient);
 }
 
 function printReceipt($orderno, $direction)
@@ -302,95 +302,50 @@ $print=print_action($html,$receipt_printer);
 
 function printBarcode($sku, $colour, $size, $sizeindex, $price)
 {
-include '../config.php';
-include_once '../functions/auth_func.php';
-$db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
-$db_conn2=mysqli_connect($db_host, $db_username, $db_password, $db_name);
-#Firstly build barcode
-#Barcode is barcode field (7),  followed by color (4) and then 'A' and sizeindex (3)
-$sql_query="select barcode from style where sku='".$sku."'";
-
-$results=$db_conn->query($sql_query);
-$barcode=mysqli_fetch_array($results);
-
-$sql_query="select sd.description, bra.nicename, sea.season from brands bra, styleDetail sd, seasons sea
+    include '../config.php';
+    include_once '../functions/auth_func.php';
+    $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
+    $db_conn2=mysqli_connect($db_host, $db_username, $db_password, $db_name);
+    #Firstly build barcode
+    #Barcode is barcode field (7),  followed by color (4) and then 'A' and sizeindex (3)
+    $sql_query="select barcode from style where sku='".$sku."'";
+    
+    $results=$db_conn->query($sql_query);
+    $barcode=mysqli_fetch_array($results);
+    
+    $sql_query="select sd.description, bra.nicename, sea.season from brands bra, styleDetail sd, seasons sea
 where bra.id = sd.brand
 and sea.id = sd.season
 and sd.sku ='".$sku."'";
-$details=$db_conn->query($sql_query);
-$detail=mysqli_fetch_array($details);
-
-$sql_query="select barcode from colours where colour ='".$colour."'";
-$results2=$db_conn2->query($sql_query);
-$col=mysqli_fetch_array($results2);
-
-$barcodetext=$barcode['barcode'].$col['barcode']."A".str_pad($sizeindex,2,'0',STR_PAD_LEFT);
-
-# Put in the html with buffer lines either side
-ob_start();
-echo <<<EOF
-				<html><body style="left:0px;margin:0px;width:45mm;height:20mm;">
-<p width=100% align=center>
-<style>
-.receiptprice
-{
-        position:relative;
-        font-size:16pt;
-    font-weight:bold;
-        left:225px;
-        top:0px;
-        font-family:Arial;
-    transform: rotate(-90deg);
+    $details=$db_conn->query($sql_query);
+    $detail=mysqli_fetch_array($details);
+    
+    $sql_query="select barcode from colours where colour ='".$colour."'";
+    $results2=$db_conn2->query($sql_query);
+    $col=mysqli_fetch_array($results2);
+    
+    $barcodetext=$barcode['barcode'].$col['barcode']."A".str_pad($sizeindex,2,'0',STR_PAD_LEFT);
+    
+    # Put in the html with buffer lines either side
+    ob_end_flush();
+    ob_start();
+    $html="";
+    echo $barcode_css;
+    
+    echo "<div style=\"float:left;clear:both;position:relative;\">";
+    echo "<p class=receipttext style=\"font-family:Arial;\">".$sku."-".$colour."-".$size."<br>";
+    echo $detail['description']."</p>";
+    echo "<br><img style=\"width:200px;\" src=\"".$web_path."/stock/barcode.php?orderno=".$barcodetext."&false=.png\"></img></p>";
+    echo "<p class=receiptprice>&pound;".$price."</p>";
+    echo "</div>";
+    $html = ob_get_clean();
+    
+    
+    $print=print_action($html,$barcode_printer, 'barcode');
+    unset($html);
+    
 }
 
-p
-{
-        margin:0px;
-        padding:0px;
-}
-
-.receipttext
-{
-        font-family:Arial;
-        font-size:9pt;
-    line-height:60%;
-}
-.receiptdetail
-{
-        position:relative;
-        font-size:14pt;
-        font-weight:bold;
-        left:210px;
-        top:0px;
-        font-family:Arial;
-}
-
-td
-{
-    font-size:10pt;
-}
-
-@page { margin-left:5px;
-        margin-top:15px;
-        height:20mm;
-        width:45mm;}
-
-</style>
-
-EOF;
-echo "<div style=\"float:left;clear:both;position:relative;\">";
-echo "<p class=receipttext style=\"font-family:Arial;\">".$sku."-".$colour."-".$size."<br>";
-echo $detail['description']."</p>";
-echo "<br><img style=\"width:200px;\" src=\"".$web_path."/stock/barcode.php?orderno=".$barcodetext."&false=.png\"></img></p>";
-echo "<p class=receiptprice>&pound;".$price."</p>";
-echo "</div>";
-$html = ob_get_clean();
-
-
-$print=print_action($html,$barcode_printer, 'barcode');
-
-
-}
 
 function generic_header()
 {
@@ -472,52 +427,53 @@ return ob_get_clean();
 
 function print_action($html,$printer, $orient)
 {
-include '../config.php';
-include_once '../functions/auth_func.php';
-//include '../functions/barcode_func.php';
-require_once '../functions/dompdf/dompdf_config.inc.php';
-
-$dompdf= new DOMPDF();
-
-if ($orient)
-{
-	if ($orient=="landscape")
-	{
-		$dompdf->set_paper(array(0,0,(11.69*120),(8.27*120)),$orient);
-	}
-	elseif ($orient=="portrait")
-	{
-		$dompdf->set_paper(array(0,0,(11.69*120),(8.27*120)),$orient);
-	}
-	elseif ($orient=="barcode")
-	{
-		$dompdf->set_paper(array(0,0,(24*72),(4.8*72)),"landscape");
-	}
+    include '../config.php';
+    include_once '../functions/auth_func.php';
+    //include '../functions/barcode_func.php';
+    require_once '../functions/dompdf/dompdf_config.inc.php';
+    
+    $dompdf= new DOMPDF();
+    
+    if ($orient)
+    {
+        if ($orient=="landscape")
+        {
+            $dompdf->set_paper(array(0,0,(11.69*120),(8.27*120)),$orient);
+        }
+        elseif ($orient=="portrait")
+        {
+            $dompdf->set_paper(array(0,0,(11.69*120),(8.27*120)),$orient);
+        }
+        elseif ($orient=="barcode")
+        {
+            $dompdf->set_paper(array(0,0,($barcode_width*72),($barcode_height*72)),"landscape");
+        }
+    }
+    else
+    {
+        $dompdf->set_paper(array(0,0,(8.27*100),(11.69*100)),"portrait");
+    }
+    //echo $html;
+    $dompdf->load_html($html);
+    $dompdf->render();
+    $pdf=$dompdf->output();
+    
+    file_put_contents($barcode_tmp."/printing.pdf",$pdf);
+    
+    #Execute O/S command to print
+    if ($orient=="landscape")
+    {
+        return exec('lp  -d '.$printer.' -olandscape '.$barcode_tmp.'/printing.pdf');
+    }
+    else
+    {
+        return exec('lp -d '.$printer.' '.$barcode_tmp.'/printing.pdf');
+    }
+    echo "<script>javascript:location.reload();</script>";
+    
 }
-else 
-{
-	$dompdf->set_paper(array(0,0,(8.27*100),(11.69*100)),"portrait");
-}
-$dompdf->load_html($html);
-$dompdf->render();
-$pdf=$dompdf->output();
 
-file_put_contents($barcode_tmp."/printing.pdf",$pdf);
-
-#Execute O/S command to print
-if ($orient=="landscape")
-{
-	return exec('lp  -d '.$printer.' -olandscape '.$barcode_tmp.'/printing.pdf');
-}
-else
-{
-	return exec('lp -d '.$printer.' '.$barcode_tmp.'/printing.pdf');
-}
-echo "<script>javascript:location.reload();</script>";
-
-}
-
-function download_action($html,$printer, $orient)
+function download_action($html,$printer, $orient, $action='display')
 {
 	include '../config.php';
 	include_once '../functions/auth_func.php';
@@ -534,15 +490,19 @@ function download_action($html,$printer, $orient)
 	}
 	$dompdf->load_html($html);
 	$dompdf->render();
-	$pdf=$dompdf->output();
+	//$pdf=$dompdf->output();
 
-	header('Content-Type: application/pdf;');
-	//header('Content-Disposition: attachment; filename="report.pdf";');
-
-	echo $pdf;
+	if ($action=='display')
+	{
+	   header('Content-Type: application/pdf;');
+	   echo $dompdf->output();
+	}
 	
-	ob_flush();
-
+	elseif ($action=="file")
+	{
+	   return $dompdf->output();
+	   exit();
+	}
 	
 }
 ?>

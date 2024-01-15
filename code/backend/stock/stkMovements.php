@@ -18,12 +18,17 @@ function printBarcode(sku)
     $('#dialog').css('top','0%');
     $('#dialog').css('left','40%');
     $('#dialog').css('margin-left','-14%');
-	$('#temp').load('./stock/printBarcode.php?sku='+sku);
+	$('#temp').load('./stock/printBarcode.php?launch=card&sku='+sku);
 	$('#dimmer').show();
 	$('#dialog').show();
 }
-	
 
+	
+function stkcard()
+{
+    var sku=$('#skuback').val();
+    $('#output').load('./stock/editStockcard.php?action=select&term='+sku);
+}
 
 function select(value)
 {
@@ -46,17 +51,21 @@ function save()
 	}
 	var sku=encodeURIComponent($('input[name=sku]').val()); 
 	var getString="action=save&";
+    if ($('#type').val()=='card')
+    {
+        getString=getString+"type=card&";
+    }
 	$('input[type!=checkbox]').each(function(){
 		if (this.value!="")
 		{
-		getString=getString+this.name+"="+encodeURIComponent(this.value);
+		getString=getString+encodeURIComponent(this.name)+"="+encodeURIComponent(this.value);
 		getString=getString+'&';
 		}
 	});
 	$('select').each(function(){
 		if (this.value!="")
 		{
-		getString=getString+this.name+"="+encodeURIComponent(this.value);
+		getString=getString+encodeURIComponent(this.name)+"="+encodeURIComponent(this.value);
 		getString=getString+'&';
 		}
 	});
@@ -85,6 +94,7 @@ EOF;
 session_start();
 $action=$_REQUEST['action'];
 $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
+
 if ($_REQUEST['effdate']=='')
 {
     $now=date('Y-m-d');
@@ -146,7 +156,7 @@ elseif ($action=="results")
 			styleDetail.season=seasons.id and styleDetail.brand=brands.id and styleDetail.sku like '".$searchterm."%' limit 30";
 	$results=$db_conn->query($sql_query);
 	echo "<table  width=100%>";
-	echo "<tr><th>SKU</th><th>Season</th><th>Brand</th></tr>";
+	echo "<tr><th align=left>SKU</th><th align=left>Season</th><th align=left>Brand</th></tr>";
 	while ($result=mysqli_fetch_array($results))
 	{
 		echo "<tr onclick=\"javascript:select('".$result['sku']."');\" ><td>".$result['sku']."</td>";
@@ -168,13 +178,21 @@ elseif($action=="save")
 		}
 	}
 	echo "<h1>Saved</h1>";
-	echo "<script type=text/javascript>$('#updater').load('./stock/stkMovements.php?action=load&sku=".$_REQUEST['sku']."&reference=".$_REQUEST['reference']."&reason=".$_REQUEST['reason']."');</script>";
+	echo "<script type=text/javascript>$('#updater').load('./stock/stkMovements.php?action=load&type=".$_REQUEST['type']."&effdate=".$_REQUEST['effdate']."&sku=".$_REQUEST['sku']."&reference=".$_REQUEST['reference']."&reason=".$_REQUEST['reason']."');</script>";
 	
 }
 
 elseif ($action=="load")
 {
-
+    if ($_REQUEST['effdate']=='' || $_REQUEST['effdate']=='undefined')
+    {
+        $now=date('Y-m-d');
+    }
+    else
+    {
+        $now=$_REQUEST['effdate'];
+    }
+    
 	$term=$_REQUEST['sku'];
 	$sql_query="select styleDetail.sku, styleDetail.description, styleDetail.season, styleDetail.brand, sea.nicename, styleDetail.Productgroup, styleDetail.category
 			, s.vatkey, s.sizekey, s.onsale	, styleDetail.nonstock, sto.costprice, sto.retailprice
@@ -191,7 +209,7 @@ elseif ($action=="load")
 	echo "<div id=searchresults></div>";
 	echo "<div id=updater>";
 	
-	echo "<table>";
+	echo "<input type=hidden id=skuback value=\"".$_REQUEST['sku']."\" /><table>";
 	echo "<tr><td>Reason code</td><td><select name=reason>".$reason."</select></td><td>Date</td><td><input name=effdate type=date value='$now'></td><td>Reference</td><td><input type=text name=reference value='";
 	if ($_REQUEST['reference']<>'undefined')
 	{
@@ -243,8 +261,14 @@ elseif ($action=="load")
 		echo "</tr>";
 	}
 	echo "</table>";
-	echo "<p width=100% align=right><button id=save onclick=\"javascript:save();\" >Save</button>
-			<button id=barcode onclick=\"javascript:printBarcode('".$detail['sku']."');\" >Barcodes</button></p>";
+	echo "<p width=100% align=right>";
+	
+	echo "<button id=save onclick=\"javascript:save();\" >Save</button><button id=barcode onclick=\"javascript:printBarcode('".$detail['sku']."');\" >Barcodes</button>";
+	if ($_REQUEST['type']=='card')
+	{
+	    echo "<button id=stkcard onclick=\"javascript:stkcard();\" >StkCard</button><input type=hidden id=type value=card />";
+	}
+	echo "</p>";
 	echo "<div id=message></div>";
 					#Output Stock Holding
 echo "<div id=stockholding>";

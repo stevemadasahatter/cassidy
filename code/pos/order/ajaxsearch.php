@@ -18,6 +18,7 @@ $sql_query="select style.sku
 , seasons.season
 , styleDetail.description
 , stock.colour
+, colours.nicename nicecolour
 , sizes.size1
 , sizes.size2
 , sizes.size3
@@ -40,11 +41,12 @@ $sql_query="select style.sku
 , sizes.size20				
 , styleDetail.nonstock
 , stock.retailprice
-from stock, styleDetail, sizes, style, brands, seasons
+from stock, styleDetail, sizes, style, brands, seasons, colours
 where 1=1
 and style.sku like '".$search."%'
 and styleDetail.sku=stock.Stockref
 and stock.company=style.company
+and stock.colour = colours.colour
 and stock.company=styleDetail.company
 and stock.Stockref=style.sku
 and styleDetail.brand=brands.id
@@ -70,8 +72,8 @@ while ($item=mysqli_fetch_array($results))
 	echo "<td rowspan=1 class=\"itemresult\">".$item['season']."</td>";
 	echo "<td rowspan=1 class=\"itemresult descr\">".$item['description']."</td>";
 	echo "<td rowspan=1 class=\"itemresult\">&pound;".$item['retailprice']."</td>";
-	echo "<td rowspan=1 class=\"itemresult colour\">".$item['colour']."</td>";
-	for ($i=1;$i<17;$i++)
+	echo "<td rowspan=1 class=\"itemresult colour\">".$item['nicecolour']."</td>";
+	for ($i=1;$i<21;$i++)
 	{
 		if ($item['size'.$i]<>"")
 		{
@@ -87,7 +89,7 @@ while ($item=mysqli_fetch_array($results))
 	echo "<tr class=odd>";
 	
 	echo "<td colspan=6 class=\"itemmeta\">In Stock</td>";
-	for ($j=1;$j<17;$j++)
+	for ($j=1;$j<21;$j++)
 	{
 		if ($item['size'.$j]<>"")
 		{		
@@ -113,7 +115,7 @@ while ($item=mysqli_fetch_array($results))
 	echo "<tr class=odd>";
 	
 	echo "<td colspan=6 class=\"itemmeta\">On Appro</td>";
-	for ($j=1;$j<17;$j++)
+	for ($j=1;$j<21;$j++)
 	{
 		if ($item['size'.$j]<>"")
 		{

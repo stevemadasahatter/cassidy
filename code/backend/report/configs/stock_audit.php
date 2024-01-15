@@ -9,7 +9,7 @@ from stock stok, styleDetail sd,
 (
 select od.Stockref,od.colour colour, c.forename forename, c.lastname lastname
 , ELT(FIELD(od.status,
-'A', 'X', 'C', 'J', 'K'),'OnAppro','OnAppro Return','Sold','Returned','Returned') Status
+'A', 'X', 'C', 'J', 'K','S'),'OnAppro','OnAppro Return','Sold','Returned','Returned', 'Sold') Status
 , od.timestamp saletime, qty, size , od.actualgrand, od.grandtot
 from orderdetail od, customers c, orderheader oh
 where 1=1
@@ -103,13 +103,14 @@ having physical <>''
 ) theunion
 where stok.StockRef = theunion.StockRef
 and sd.sku = stok.Stockref 
+and [[DATE]]  
 EOF;
 
 #getSelect key for select code
 $filters[0]=array('seasons', 'brands','transtype','reason_code');
 
 #Predicate equivalent
-$filters[1]=array('sd.season', 'sd.brands');
+$filters[1]=array('sd.season', 'sd.brand');
 
 #Group by name
 $filters[2]=array();
@@ -121,7 +122,7 @@ $filters[3]=array();
 $filters[4]=array();
 
 #What is the date field called?
-$date="datetime";
+$date="theunion.saletime";
 
 #can we group by everything (to be implemented)
 $group_by=array(1,1,1,1);
@@ -129,7 +130,7 @@ $group_by=array(1,1,1,1);
 #Orientation
 $orient="landscape";
 $title="Stock Movements Audit Report";
-$debug=1;
+$debug=0;
 $category="Stock";
 ?>
 

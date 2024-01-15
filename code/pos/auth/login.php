@@ -3,8 +3,8 @@
 
 include '../config.php';
 include '../functions/auth_func.php';
-
 session_start();
+
 echo <<<EOF
 <script>
 $(document).ready(function(){			
@@ -36,6 +36,7 @@ $("#dialog-confirm" ).dialog({
 EOF;
 $db_conn=mysqli_connect($db_host,$db_username, $db_password, $db_name);
 
+
 ## Logout code
 if ($_REQUEST['action']=='logout')
 {
@@ -66,7 +67,8 @@ if ($_REQUEST['action']=="typing")
         }
 	else 
 	{
-         	echo "<script type=text/javascript>location.reload(); </script>";
+
+           	echo "<script type=text/javascript>location.reload(); </script>";
          	exit();
 	}
 
@@ -100,10 +102,11 @@ else
                 $tillsession=getTillSession($till);
                 
                 $startval=getPettyCash($till);
-                if ($startval['startval']=="")
+                if ($startval['startval']=="" || $startval['startval']==0)
                 {
                 	echo "<script>javascript:displayPetty();</script>";
                 }
+
         }
         else 
         {
@@ -129,14 +132,14 @@ if ($_REQUEST['action']=="login")
 	$i=0;
 	while ($result=mysqli_fetch_array($results))
 	{
-                $buttons.="<td style=\"border:1px solid #eee;text-align:center;width:50px;\" onclick=\"javascript:selUser('".$result['username']."');\"><p class=icon>".strtoupper(substr($result['username'],0,1))."</p><p>".$result['username']."</p></td>";
+                $buttons.="<td style=\"border:1px solid #eee;text-align:center;width:60px;\" onclick=\"javascript:selUser('".$result['username']."');\"><p class=icon>".strtoupper(substr($result['username'],0,1))."</p><p>".$result['username']."</p></td>";
 	}
 	echo $buttons."</tr>";
 	
 	echo "<tr><td colspan=12><div id=status></div></td></tr><tr><td colspan=10>";
-	echo "<tr><td colspan=4><input type=password autocomplete=off id=numBox onkeyup=\"javascript:send();\"><input type=hidden id=username value='' /></input></td></tr>";
+	echo "<tr><td colspan=12 align=center><input type=password autocomplete=off id=numBox onkeyup=\"javascript:send();\"><input type=hidden id=username value='' /></input></td></tr>";
 	echo <<<EOF
-<table id="keypad" >
+<table id="keypad" style="margin-left:auto;margin-right:auto;" >
 <tr>
 <td class="key" onclick="javascript:keypad('1');">1</td>
 <td class="key" onclick="javascript:keypad('2');">2</td>
@@ -160,9 +163,9 @@ if ($_REQUEST['action']=="login")
 </table>
 </td></tr>
 EOF;
-
+	$size=getTillType();
 	echo "</table>";
-	echo "<p><img src=./images/$company-logo.png /></p>";
+	echo "<table style=\"margin-left:auto;margin-right:auto;\" width=100%><tr><td align=center><img align=center src=./images/".$size['size']."-logo.png /></td></tr></table>";
 }
 
 if ($_REQUEST['action']=="logout")
@@ -177,11 +180,15 @@ if ($_REQUEST['action']=="logout")
 <script type="text/javascript">
 function login() 
 {        
+		$('#temp').remove();
          $('#dialog').append('<div id=temp></div>');
+         $('#temp').load('./auth/login.php?action=login', function(){
+		var wid=$('#dialog').width();
                  $('#dialog').css('left','50%');
-                 $('#dialog').css('margin-left','-20%');
-         $('#temp').load('./auth/login.php?action=login');
+                 $('#dialog').css('margin-left',wid/2*-1);
+		$('#dialog').css('border-radius','25px');
 		 $('#dimmer').show();
+	});
          $('#dialog').show();
 }
 

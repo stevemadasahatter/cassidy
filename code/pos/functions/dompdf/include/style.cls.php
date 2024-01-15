@@ -680,6 +680,7 @@ class Style {
    *
    */
   function __set($prop, $val) {
+	  ini_set('display_errors', 'On');
     $prop = str_replace("-", "_", $prop);
     $this->_prop_cache[$prop] = null;
     

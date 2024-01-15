@@ -10,15 +10,17 @@ $type=$_REQUEST['type'];
 
 if ($action=="amnt")
 {
+    
 	#Get voucher amount
 	$voucher=getSpendPot($_REQUEST['id'],$type);
-	$ymd = DateTime::createFromFormat('d/m/Y', $voucher['expireDate'])->format('m/d/Y');
+	$ymd = DateTime::createFromFormat('d/m/Y', $voucher['expireDate'])->format('d/m/Y');
+	$mdy = DateTime::createFromFormat('d/m/Y', $voucher['expireDate'])->format('m/d/Y');
 	if ($voucher['usedDate']<>'')
 	{
 		#Used gift voucher
 		echo "Used on ".date("d-m-Y", strtotime($voucher['usedDate']));
 	}
-	elseif (strtotime($ymd)-strtotime(date('d-m-Y'))>-5)
+	elseif (strtotime($mdy)-strtotime(date('m/d/Y'))>-5)
 	{
 		#Valid, return amount
 		echo "£ ".$voucher['amount'];
@@ -35,13 +37,14 @@ if ($action=="type")
 {
 	#Get voucher amount
 	$voucher=getSpendPot($_REQUEST['id'],$type);
-	$ymd = DateTime::createFromFormat('d/m/Y', $voucher['expireDate'])->format('m/d/Y');
+	$ymd = DateTime::createFromFormat('d/m/Y', $voucher['expireDate'])->format('d/m/Y');
+	$mdy = DateTime::createFromFormat('d/m/Y', $voucher['expireDate'])->format('m/d/Y');
 	if ($voucher['usedDate']<>'')
 	{
 		#Used gift voucher
 		exit();
 	}
-	elseif (strtotime($ymd)-strtotime(date('d-m-Y'))>0)
+	elseif (strtotime($mdy)-strtotime(date('m/d/Y'))>0)
 	{
 		#Valid, return amount
 		echo $voucher['type'];

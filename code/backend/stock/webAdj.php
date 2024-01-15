@@ -15,7 +15,6 @@ if ($_REQUEST['action']=="update")
 	
 	$sql_query="update stock set web_status = ".$web_status." where Stockref = '".$sku."' and colour = '".$variant."'";
 	$do_it=$db_conn->query($sql_query);
-	echo $sql_query;
 	exit();
 }
 

@@ -10,6 +10,22 @@ include_once '../website/config.php';
 
 $time=date('Y-m-d H:i:s');
 
+#Am I still running
+$sql_query="select value from config where config = 'batch_running'";
+$results=$db_conn->query($sql_query);
+$result=mysqli_fetch_array($results);
+
+#$running=$result['value'];
+$running=0;
+if ($running==1)
+{
+    echo date('Y-m-d H:i:s')." - INFO - Already Running. Shutdown\n";
+    exit();
+}
+
+$sql_query="update config set value = 1 where config = 'batch_running'";
+$do_it=$db_conn->query($sql_query);
+
 #When was I last run?
 $sql_query="select value from config where config = 'batch_run'";
 $results=$db_conn->query($sql_query);
@@ -46,9 +62,9 @@ if ($switches['batch_upload']==1)
 	{
 		#Create items where required and then update webDetails record to show uploaded
 		create_web_item();
+		//$sql_query="update config set value ='".$time."' where config='batch_upload_run'";
+		//$doit=$db_conn->query($sql_query);
 	}
-	$sql_query="update config set value ='".$time."' where config='batch_upload_run'";
-	$doit=$db_conn->query($sql_query);
 }
 else {
 	echo date('Y-m-d H:i:s')." - INFO - Didn't perform Batch upload of Stock this time)\n";
@@ -75,9 +91,10 @@ if ($switches['batch_stock']==1)
 	{
 		 $output=change_web_item($result['value']);
 		 echo $output;
+		 //$sql_query="update config set value ='".$time."' where config='batch_stock_run'";
+		// $doit=$db_conn->query($sql_query);
 	}
-	$sql_query="update config set value ='".$time."' where config='batch_stock_run'";
-	$doit=$db_conn->query($sql_query);
+
 }
 else
 {
@@ -90,6 +107,8 @@ if ($switches['batch_prices']==1)
 	echo date('Y-m-d H:i:s')." - INFO - Started Stock price updates)\n";
 	$output=change_web_special_price();
 	echo $output;
+	//$sql_query="update config set value ='0' where config='batch_prices'";
+	//$doit=$db_conn->query($sql_query);
 }
 else
 {
@@ -99,5 +118,10 @@ else
 #Update last batch runtime
 $sql_query="update config set value ='".$time."' where config='batch_run'";
 $doit=$db_conn->query($sql_query);
+
+$sql_query="update config set value = 0 where config = 'batch_running'";
+$do_it=$db_conn->query($sql_query);
+
+echo date('Y-m-d H:i:s')." - INFO - Done)\n";
 
 ?>

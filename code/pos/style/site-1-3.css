@@ -83,6 +83,19 @@ h2
 		box-shadow:0 -1px 0 #e5e5e5, 0 0 2px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.24);
 }
 
+#stats
+{
+		position:absolute;
+		padding:20px;
+		border:1px solid #ddd;
+		z-index:9999;
+		background-color:#ffffff;
+		display:none;
+		box-shadow:0 -1px 0 #e5e5e5, 0 0 2px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.24);
+		width:95%;
+		height:95%;
+}
+
 .ui-dialog
 {
 	z-index:100000 !important;
@@ -169,8 +182,8 @@ h2
 }
 #custsearchmaster
 {
-	width:29%;
-	height:80px;
+	width:32%;
+	height:90px;
 	float:left;
 	padding-top:10px;
 	padding-left:10px;
@@ -185,7 +198,7 @@ h2
 {
 	box-sizing: border-box;
 	float:left;
-	padding-top:30px;
+	padding-top:12px;
 	font-family: 'Open Sans', sans-serif;
 	vertical-align:middle;
 }
@@ -214,7 +227,7 @@ h2
 	float:left;
 	clear:right;
 	width:23%;
-    height:90px;
+    height:100px;
     margin-top:10px;
     box-shadow:0 -1px 0 #e5e5e5, 0 0 2px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.24);
     background-color:#ffffff;
@@ -232,8 +245,8 @@ table.custdetail td
 	box-sizing: border-box;
 	float:left;
 	clear:right;
-	width:15%;
-    height:90px;
+	width:13%;
+    height:100px;
     margin-top:10px;
     box-shadow:0 -1px 0 #e5e5e5, 0 0 2px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.24);
     background-color:#ffffff;
@@ -296,10 +309,10 @@ table.itemsearchtable tr.even td
 	box-sizing: border-box;
 	float:left;
 	clear:right;
-	width:29%;
-	height:90px;
+	width:27%;
+	height:100px;
 	z-index:100;
-	padding-top:10px;
+	padding-top:20px;
 	padding-bottom:10px;
 	margin-top:10px;
 	margin-left:5px;
@@ -314,7 +327,7 @@ table.itemsearchtable tr.even td
 	clear:both;
 	width:100%;
 	position:absolute;
-	top:123px;
+	top:145px;
 	background-color:#ffffff;
 	display:none;
 	z-index:100;
@@ -422,13 +435,16 @@ table.itemsearchtable tr.even td
 {
 	position:absolute;
 	z-index:1000;
-	top:155px;
-	left:490px;
+	top:169px;
+	left:28%;
+	width:32%;
 	display:none;
-	background-color:#9061b6;
-	color:#ffffff;
-	opacity:0.9;
+	color:#777;
+	background-color:#fff;
+	opacity:0.8;
 	padding:0px;
+	overflow:scroll;
+	max-height:500px;
 }
 
 .subsection
@@ -714,7 +730,7 @@ table.receipt th
 #vouchers
 {
 	width:680px;
-	height:300px;
+	height:600px;
 	display:none;
 	z-index:999;
 	margin:10px auto;
@@ -722,6 +738,8 @@ table.receipt th
 	background-color:#ffffff;
 	top:15%;
 	left:8%;
+	overflow-y: auto;
+	border:20px solid #eee;
 	
 }
 

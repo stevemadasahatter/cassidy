@@ -39,12 +39,12 @@ elseif ($action=='commit')
 
 $total=bagTotals();
 
+
 //echo "<table width=100%><tr><td  class=totalhead width=200px></td><td class=totalhead>Total</td><td class=totalhead>Discount Amount (Non-Sale)</td><td class=totalhead>Item Count</td>
 	//	<td class=totalhead>Already Paid</td><td class=totalhead>Outstanding Total</td><td class=totalhead></td></tr>";
 echo "<table><tr><td class=totalhead>Total</td><td class=totalhead>Count</td></tr>";
 echo "<tr><td class=totalamnt >&pound;".number_format($total['outstanding'],2)."</td>";
 echo "<td class=totalamnt >".$total['count']."</td></tr>";	
-//echo "<tr><td>&pound;".number_format($total['total'],2)."</td></tr>";
 //echo "<td class=clickable onclick=\"javascript:changeDiscount();\">&pound;".number_format($total['discountamt'],2)."</td>";
 
 //echo "<td>&pound;".number_format($total['paid'],2)."</td>";

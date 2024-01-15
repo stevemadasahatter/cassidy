@@ -16,7 +16,7 @@ h2
 	padding:0px;
 	margin:0px;
 	font-size:18pt;
-	font-family:arial;
+	font-family:"Open Sans";
 	color:#75469b;
 	
 }
@@ -99,7 +99,7 @@ select option
 p, a, td
 {
 	font-size:12pt;
-	font-family:arial;
+	font-family:"Open Sans";
 	text-decoration:none;
 	vertical-align:middle;
 	color:#75469b;
@@ -114,7 +114,7 @@ a
 li
 {
 	list-style:none;
-	font-family:arial;
+	font-family:"Open Sans";
 	font-size:16pt;
 	display:table-cell;
 }

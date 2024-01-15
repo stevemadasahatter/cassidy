@@ -59,16 +59,17 @@ $i=0;
 $skus=array();
 $prices=array();
 $lines=array();
+$qtys=array();
 
 while ($result=mysqli_fetch_array($results))
 {
 	array_push($skus,$result['StockRef']);
 	array_push($prices,$result['total']);
 	array_push($lines,$result['lineno']);
-	$total=$total+$result['total'];
+	array_push($qtys,$result['qty']);
+	$total=$total+($result['total']*$result['qty']);
 	$i++;
 }
-
 $j=0;
 foreach ($lines as $line)
 {
@@ -83,7 +84,7 @@ foreach ($lines as $line)
 	elseif ($lineno=="" && $type=="amnt")
 	{
 		$wholeperc=$amount/$total*100;
-		$value=$prices[$j]-($prices[$j]/100*$wholeperc);
+		$value=($prices[$j])-(($prices[$j])/100*$wholeperc);
 		echo "<tr><td>".$skus[$j]."<input type=hidden id=sku$j value=\"".$skus[$j]."\" /></td>";
 		echo "<td>".$prices[$j]."</td><td>".number_format($prices[$j]-$value,2)."</td><td>".number_format($value,2)."</td>
 		<input type=hidden id=price$j value=\"".($value)."\"/><input type=hidden id=line$j value=\"".($lines[$j])."\"/></tr>";
@@ -92,7 +93,9 @@ foreach ($lines as $line)
 	elseif ($lineno<>"" && $type=="pct")
 	{
 		//if ($sku==$skus[$j])
-		if ($lineno==$j+1)
+		
+		echo $j;
+		if ($lineno==$line)
 		{
 			$value=$prices[$j]-($prices[$j]/100*$amount);
 			echo "<tr><td>".$skus[$j]."<input type=hidden id=sku$j value=\"".$skus[$j]."\" /></td>";
@@ -109,10 +112,10 @@ foreach ($lines as $line)
 	}
 	elseif ($lineno<>"" && $type=="amnt")
 	{
-		if ($lineno==$j+1)
+		if ($lineno==$line)
 		{
 			
-			$value=$prices[$j]-$amount;	
+			$value=((($prices[$j]*$qtys[$j])-$amount)/$qtys[$j]);	
 			echo "<tr><td>".$skus[$j]."<input type=hidden id=sku$j value=\"".$skus[$j]."\" /></td>";
 			echo "<td>".$prices[$j]."</td><td>".number_format($prices[$j]-$value,2)."</td><td>".number_format($value,2)."</td>
 			<input type=hidden id=price$j value=\"".($value)."\" /><input type=hidden id=line$j value=\"".($lines[$j])."\"/></tr>";
@@ -127,7 +130,7 @@ foreach ($lines as $line)
 	}
 	elseif ($lineno<>"" && $type=="override")
 	{
-		if ($lineno==$j+1)
+		if ($lineno==$line)
 		{
 			$value=$amount;
 			echo "<tr><td>".$skus[$j]."<input type=hidden id=sku$j value=\"".$skus[$j]."\" /></td>";
@@ -212,7 +215,7 @@ $('#commit2').click(function(){
 		var lineno=$('#line'+skunum).attr('value');
 		var override=$('#overcash').val();
 		var sku=$(this).attr('value');
-		var getString='./order/discounts.php?action=commit&sku='+encodeURI(sku)+'&amount='+price+'&override='+override+'&lineno='+lineno;
+		var getString='./order/discounts.php?action=commit&sku='+encodeURIComponent(sku)+'&amount='+price+'&override='+override+'&lineno='+lineno;
 		request.open('GET', getString, false); 
 		request.send(null);
 		//$('#output').load(getString);

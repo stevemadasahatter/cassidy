@@ -21,11 +21,11 @@ $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 $new=0;
 if ($action=="")
 {
-echo "<h2>Product Search</h2>";
-echo "<p style=\"width:100%;text-align:right;\"><span style=\"padding-right:60px;\"><button id=add onclick=\"javascript:addSku();\">New</button></span></p>";
+echo "<p style=\"width:100%;text-align:right;\">
+    <table width=100%><tr><td><h2>Product Search</h2></td><td><button align=right id=add onclick=\"javascript:addSku();\">New</button></td></tr></table></p>";
 echo "<script type=text/javascript>$('button').button();</script>";
 echo "<table><tr>";
-echo "<td>SKU</td><td>Brand</td><td>Season</td><td>Type</td></tr>";
+echo "<td>SKU</td><td>Brand</td><td>Season</td><td>Colour</td><td>Type</td></tr>";
 
 $brands=getSelect('brands',0);
 $seasons=getSelect('seasons',0);
@@ -36,6 +36,7 @@ echo "<tr>
 		<td><input  onkeyup=\"javascript:searchItem2();\" id=sku /></td>
 		<td><select onchange=\"javascript:searchItem2();\" id=brand >$brands</select></td>
 		<td><select onchange=\"javascript:searchItem2();\" id=season >$seasons</select></td>
+        <td><select onchange=\"javascript:searchItem2();\" id=colour >$colours</select></td>
 		<td><select onchange=\"javascript:searchItem2();\" id=category>$category</select></td>
 		</tr>";
 echo "<tr style=\"height:10px;\"><td colspan=10></td></tr>";
@@ -121,9 +122,19 @@ elseif ($action=="addcolour")
 
 elseif ($action=="addsaleprice")
 {
-	$sql_query="update stock set saleprice=".$_REQUEST['saleprice']." where Stockref = '".$_REQUEST['sku']."' and colour = '".$_REQUEST['colour']."'";
+    if ($_REQUEST['saleprice']=='')
+    {
+        $sql_query="update stock set saleprice=NULL where Stockref = '".$_REQUEST['sku']."' and colour = '".$_REQUEST['colour']."'";
+        $feedback="Sale Price removed";
+    }
+    else 
+    {
+	   $sql_query="update stock set saleprice=".$_REQUEST['saleprice']." where Stockref = '".$_REQUEST['sku']."' and colour = '".$_REQUEST['colour']."'";
+	   $feedback="Sale Price updated";
+    }
+    
 	$do_it=$db_conn->query($sql_query);
-	echo "<h2>Sale Price saved</h2>";
+	echo "<h2>".$feedback."</h2>";
 	exit();
 }
 
@@ -140,9 +151,10 @@ $sql_query="select style.sku
 	, seasons.season
 	, style.description
     , stock.costprice
+    , colours.colour
     , stock.retailprice
 	, category.nicename category
-	from stock, styleDetail, sizes, style, brands, seasons, category
+	from stock, styleDetail, sizes, style, brands, seasons, category, colours
 	where 1=1
 	and styleDetail.sku=stock.Stockref
 	and stock.company=style.company
@@ -152,6 +164,7 @@ $sql_query="select style.sku
 	and styleDetail.brand=brands.id
 	and styleDetail.season=seasons.id
 	and style.sizekey=sizes.sizekey
+    and stock.colour = colours.colour
 	and style.sku like '".$sku."%'";
 	
 		if ($brand<>"")
@@ -169,24 +182,30 @@ $sql_query="select style.sku
 		{
 			$sql_query.=" and category.id = ".$category." ";
 		}
+		
+		if ($colour<>"")
+		{
+		    $sql_query.=" and colours.id = ".$colour." ";
+		}
 
 		$sql_query.=" group by style.sku
+    , colours.colour
 	, brands.nicename
 	, seasons.season
 	, style.description
 	, category.nicename 
     , stock.costprice
     , stock.retailprice
-	order by seasons.season desc";
+	order by style.sku asc";
 		
 	$results=$db_conn->query($sql_query);
 	echo "<table class=itemsearchtable>";
-	echo "<tr class=itemheader><td class=itemheader>SKU</td><td class=itemheader>Brand</td><td class=itemheader>Season</td><td class=itemheader>Type</td><td class=itemheader>Description</td><td>Cost</td><td>Retail</td></tr>";
+	echo "<tr class=itemheader><td class=itemheader>SKU</td><td class=itemheader>Colour</td><td class=itemheader>Brand</td><td class=itemheader>Season</td><td class=itemheader>Type</td><td class=itemheader>Description</td><td>Cost</td><td>Retail</td></tr>";
 	echo "<tr style=\"height:10px;\" class=itemheader><td style=\"height:10px;\" colspan=7></td></tr>";
 	
 	while ($result=mysqli_fetch_array($results))
 	{
-		echo "<tr onclick=\"javascript:select('".$result['sku']."');\"><td>".$result['sku']."</td><td>".$result['nicename']."</td><td>".$result['season']."</td><td>".$result['category']."</td><td>".$result['description']."</td>
+		echo "<tr onclick=\"javascript:select('".$result['sku']."');\"><td>".$result['sku']."</td><td>".$result['colour']."</td><td>".$result['nicename']."</td><td>".$result['season']."</td><td>".$result['category']."</td><td>".$result['description']."</td>
             <td>".$result['costprice']."</td><td>".$result['retailprice']."</td></tr>";
 	}
 	echo "</table>";
@@ -207,6 +226,22 @@ elseif ($action=="select")
 	$details=$db_conn->query($sql_query);
 	$detail=mysqli_fetch_array($details);
 	}
+}
+
+
+elseif ($action == "enableweb")
+{
+    $sql_query="update stock set web_status = 1 where Stockref = '".$_REQUEST['sku']."' and colour = '".$_REQUEST['colour']."'";
+    echo $sql_query;
+    $do_it=$db_conn->query($sql_query);
+    
+}
+
+elseif ($action == "recycleweb")
+{
+    $sql_query="update stock set web_complete = 0, web_uploaded=0 where Stockref = '".$_REQUEST['sku']."' and colour = '".$_REQUEST['colour']."'";
+    echo $sql_query;
+    $do_it=$db_conn->query($sql_query);   
 }
 
 elseif ($action=="save")
@@ -240,7 +275,6 @@ elseif ($action=="save")
 		$sql_query.=$setClause;
 		$sql_query.=" where sku='".$_REQUEST['sku']."'";
 		$result=$db_conn->query($sql_query);
-		
 		#style last
 		$setClause=" sku='".$_REQUEST['sku']."',description=\"".$_REQUEST['description']."\",sizekey=\"".$_REQUEST['sizekey']."\"";
 		$setClause.=" ,vatkey=\"".$_REQUEST['vatkey']."\" , company=".$_SESSION['CO'];
@@ -256,7 +290,6 @@ elseif ($action=="save")
 		$sql_query.=$setClause;
 		$sql_query.=" where sku='".$_REQUEST['sku']."'";
 		$result=$db_conn->query($sql_query);
-		
 		$sql_query="update stock set costprice=".$_REQUEST['costprice'].", retailprice=".$_REQUEST['retailprice'];
 
 		$sql_query.=" where Stockref = '".$_REQUEST['sku']."'";
@@ -401,17 +434,17 @@ echo "</div>";
 echo "<h2>Audit History</h2>";
 echo "<div>";
 
-$sql_query="select colour, forename, lastname, size, qty, date_format(saletime,'%d/%m/%Y    %H:%i') datetime, Status, if(abs(actualgrand)>0, actualgrand, grandTot) price, if(abs(actualgrand)>0, grandTot-actualgrand,'0') discount
+$sql_query="select colour, forename, lastname, size, qty, date_format(saletime,'%d/%m/%Y    %H:%i') datetime, Status, if(abs(actualgrand)>0, actualgrand, grandTot) price, grandTot-actualgrand discount
 from 
 (
 select od.colour colour, c.forename forename, c.lastname lastname
-, ELT(FIELD(od.status,'A', 'X', 'C', 'J', 'K'),'OnAppro','OnAppro Return','Sale/Return','Returned','Returned') Status
+, ELT(FIELD(od.status,'A', 'X', 'C', 'J', 'K','S'),'OnAppro','OnAppro Return','Sale/Return','Sale/Return','Sale/Return', 'Sale/Return') Status
 , od.timestamp saletime, abs(qty) qty, size , od.actualgrand, od.grandtot
 from orderdetail od, customers c, orderheader oh
 where stockref = '".$detail['sku']."'
 and c.custid = oh.custref
 and od.transno = oh.transno
-and od.status in ('A', 'X', 'C', 'J', 'K')
+and od.status in ('A', 'X', 'C', 'J', 'K','S')
 union
 select stk.colour colour, 'Stock' forename, rea.nicename lastname, stk.Reference,stk.datetrack saletime, stk.qty*-rea.polarity qty,
 case stk.sizeid 
@@ -656,7 +689,7 @@ function priceAdj(i, sku, colour)
 function addColour(sku)
 {
 
-	var colour=$('select[name=colours]').val();
+	var colour=encodeURIComponent($('select[name=colours]').val());
 	var costprice=$('input[name=costprice]').val();
 	var retailprice=$('input[name=retailprice]').val();
 	var urlsku = encodeURIComponent(sku);
@@ -684,7 +717,7 @@ function salePrice(colour, sku, saleprice)
 $('#movements').click(function()
 {	
 	var sku=encodeURIComponent($('input[name=sku]').val());
-	$('#output').load('./stock/stkMovements.php?action=load&header=0&sku='+sku);
+	$('#output').load('./stock/stkMovements.php?type=card&action=load&header=0&sku='+sku);
 });
 
 function printBarcode(sku)
@@ -693,7 +726,7 @@ function printBarcode(sku)
     $('#dialog').css('top','0%');
     $('#dialog').css('left','39%');
     $('#dialog').css('margin-left','-14%');
-	$('#temp').load('./stock/printBarcode.php?sku='+sku);
+	$('#temp').load('./stock/printBarcode.php?launch=card&sku='+sku);
 	$('#dimmer').show();
 	$('#dialog').show();
 }
@@ -715,7 +748,7 @@ function searchItem2()
 			disabled: false
 		});
 	}
-	if (sku.length>2 || brand!='' || season!='' || category!='' )
+	if (sku.length>2 || brand!='' || season!='' || category!='' || colour!='')
 	{
 		$('#searchresultssc').load('./stock/editStockcard.php?action=results&brand='+brand+'&season='+season+'&sku='+sku+'&colour='+colour+'&category='+category+'&pricefrom='+pricefrom+'&priceto='+priceto);
 	}
@@ -735,6 +768,31 @@ function newsku()
 function delVariant(sku, colour)
 {
 	$('#colform').load('./stock/editStockcard.php?action=delvariant&sku='+sku+'&colour='+colour);
+}
+
+function enableWeb(sku,colour)
+{
+	var url="./stock/editStockcard.php?action=enableweb&sku="+sku+"&colour="+colour;
+	$.get(url, function(data,status){});
+	$('#'+sku+'-'+colour).slideUp();
+}
+
+function recycleWeb(sku,colour)
+{
+	var url="./stock/editStockcard.php?action=recycleweb&sku="+sku+"&colour="+colour;
+	$.get(url, function(data,status){});
+	$('#'+sku+'-'+colour).slideUp();
+}
+
+function stockSync(sku)
+{
+    $('#dialog').html('<div id=temp></div>');
+    $('#dialog').css('top','0%');
+    $('#dialog').css('left','39%');
+    $('#dialog').css('margin-left','-14%');
+	$('#temp').load('./stock/printBarcode.php?launch=card&sku='+sku);
+	$('#dimmer').show();
+	$('#dialog').show();
 }
 
 

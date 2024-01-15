@@ -16,7 +16,11 @@ $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 if ($_REQUEST['action']=="load")
 {
 	$_SESSION['orderno']=$_REQUEST['orderno'];
-	$_SESSION['custref']=getCustomer($_SESSION['orderno']);
+	$cust=getCustomer($_SESSION['orderno']);
+	$_SESSION['custref']=$cust['custid'];
+	
+	$sql_query="update orderdetail set timestamp = NOW() where transno = '".$_REQUEST['orderno']."'";
+	$do_it=$db_conn->query($sql_query);
 	
 	$sql_query="select rollID from tillrolldetail where orderno = '".$_SESSION['orderno']."'";
 	$results=$db_conn->query($sql_query);

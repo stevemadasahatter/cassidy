@@ -28,7 +28,6 @@ if ($_REQUEST['action']=="add")
 			coalesce(".$_REQUEST['physical6'].",0),coalesce(".$_REQUEST['physical7'].",0),coalesce(".$_REQUEST['physical8'].",0),coalesce(".$_REQUEST['physical9'].",0),coalesce(".$_REQUEST['physical10'].",0)
 			, ".$_REQUEST['costprice'].", ".$_REQUEST['retailprice'].", coalesce(".$_REQUEST['saleprice'].",0.00))";
 	$do_it=$db_conn->query($sql_query);
-	echo $sql_query;
 	exit();
 }
 

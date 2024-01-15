@@ -1,6 +1,6 @@
 <?php
 
-function printReceipt($orderno, $direction, $date=NULL)
+function printReceipt($orderno, $direction, $output="false", $date=NULL)
 {
     include '../config.php';
     include_once '../functions/auth_func.php';
@@ -45,19 +45,7 @@ function printReceipt($orderno, $direction, $date=NULL)
     ob_start();
     if ($direction=="email")
     {
-        echo <<<EOF
-        <html>
-        <head>
-        <style>
-        </style>
-        </head>
-        
-        <body bgcolor="#eee">
-        <p width=100%> 
-        <table width=400 align="center" bgcolor="#fff">
-        <tr><td align=center colspan=4><img align=center width=300 src="https://www.cocorose.co.uk/shopfront/skin/frontend/cocorose/default/images/logo.png" /></td></tr>
-        
-EOF;
+	   $structure=file_get_contents('../report/emailReceipt.html');
     }
         
     
@@ -129,13 +117,9 @@ EOF;
         $ordertotal=mysqli_fetch_array($results);
         
         echo "<table bgcolor='#fff' width=100% align=center>";
-        if (number_format(($ordertotal['grandTot']-$order_total),2)<>'0.00' && $ordertotal['grandTot']<>0)
-        {
-            echo "<tr><td>Customer Discount</td><td align=right>&pound;".number_format(($ordertotal['grandTot']-$order_total),2)."</td></tr>";
-        }
         if ($order_total>0)
         {
-            echo "<tr><td class=receiptheader>Total</td><td align=right>&pound;".number_format($order_total,2)."</td></tr>";
+            echo "<tr><td class=receiptheader>Total</td><td align=right>&pound;".number_format($ordertotal['grandTot'],2)."</td></tr>";
         }
         else
         {
@@ -233,7 +217,7 @@ EOF;
             echo "<tr><td>Mobile</td><td>".$result['mobile']."</td></tr>";
         }
         
-        $dupe="true";
+        $dupe="false";
         $footer="false";
     }
     
@@ -291,7 +275,7 @@ EOF;
 							<td align=right>&pound;".number_format($spendpotvalue['amount'],2)."</td></tr>";
                         
                         #Did we generate an overflow Spendpot?
-                        $sql_query2="select id, amount from spendpots where orderno = $orderno and reason = 'Overflow'";
+                        $sql_query2="select id, amount from spendpots where orderno = $orderno and reason = 'Overflow' and createdDate >= current_date()";
                         $results2=$db_conn2->query($sql_query2);
                         $result2=mysqli_fetch_array($results2);
                         if ($result2['id']<>"")
@@ -320,7 +304,7 @@ EOF;
         $html.=generic_footer($orderno, $footer);
         ob_end_clean();
         #Perform the print
-        $print=print_action($html,$receipt_printer,$dupe);
+        $print=print_action($html,$receipt_printer,$dupe,$output);
         
         
         if (substr($print, 1,2)=="lp")
@@ -348,20 +332,10 @@ EOF;
     {
         require_once '../functions/dompdf/dompdf_config.inc.php';
         require_once "Mail.php";
-        
-        $html=generic_header(0);
         $html.=ob_get_clean();
-        $html.=generic_footer($orderno, $footer);
-        $html.=<<<EOF
-    <tr><td align=center><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2440.9172103834117!2d-1.5913746839265208!3d52.2812049797697!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4870cb43d158c367%3A0x2c6ce206d5bd40a7!2sCoco+Rose!5e0!3m2!1sen!2suk!4v1522423010290" width="480" height="350" frameborder="0" style="border:0" allowfullscreen></iframe></td></tr>
-    </table>
-    </div>
-    
-    </div>
-    </body>
-    
-    </html>
-EOF;
+	$replacement=str_replace("[RECEIPT_CONTENT]",$html,$structure);
+        $html=$replacement;
+//        $html=$replacement.generic_footer($orderno, $footer);
         
 //        $dompdf= new DOMPDF();
 //        $dompdf->set_paper(array(0,0,(3*72),(11*72)),"portrait");
@@ -374,7 +348,7 @@ EOF;
         $to = $customer['email'];
         
         //define the subject of the email
-        $subject = 'Your Shopping Receipt';
+        $subject = 'Your E-Receipt';
         //create a boundary string. It must be unique
         //so we use the MD5 algorithm to generate a random hash
         $random_hash = md5(date('r', time()));
@@ -387,11 +361,9 @@ EOF;
 
 //copy current buffer contents into $message variable and delete current output buffer
 $message = $html;
-
-$host = "mail.cocorose.co.uk";
-$username = "cocoshop@cocorose.co.uk";
+$host = "smtp.gmail.com";
+$username = "sales@cocorose.co.uk";
 $password = "S4usages!";
-
 $headers = array (
    'To' => $to,
    'Subject' => $subject,
@@ -401,12 +373,12 @@ $headers = array (
         'return-path' => 'shop@cocorose.co.uk',
         'From' =>  'Coco Rose'. " <shop@cocorose.co.uk>");
 
-                $smtp = Mail::factory('smtp',
+ $smtp = Mail::factory('smtp',
  array ('host' => $host,
-     'port'=> 25,
-     'auth' => false,
-     'socket_options' => array('ssl' => array('verify_peer_name' => false)),
-     'debug' => true,
+     'port'=> 587,
+     'auth' => 'PLAIN',
+     'socket_options' => array('ssl' => array('verify_peer_name' => true)),
+     'debug' => false,
      'username' => $username,
      'password' => $password));
     $mail = $smtp->send($to, $headers, $message);
@@ -415,7 +387,7 @@ $headers = array (
 echo "<h2>Receipt Sent</h2>";
 }
 
-function giftReceipt($orderno)
+function giftReceipt($orderno, $type, $output)
 {
 include '../config.php';
 include_once '../functions/auth_func.php';
@@ -453,7 +425,7 @@ $html.=ob_get_clean();
 $html.=generic_footer($orderno);
 
 #Perform the print
-$print=print_action($html,$receipt_printer,false);
+$print=print_action($html,$receipt_printer,false, $output);
 
 
 }
@@ -534,7 +506,7 @@ elseif ($result['type']=='C')
 	echo "<tr><td colspan=4>----------------------------------------</td></tr>";
 	echo "</table>";
 	
-	$sql_query3="select cust.forename, cust.lastname,sp.amount, date_format(sp.expireDate ,'%d-%m-%Y') expireDate, od.status, od.StockRef
+	$sql_query3="select cust.forename, cust.lastname,sp.amount, (date_format(sp.expireDate - INTERVAL 1 MONTH,'%d-%m-%Y') )  expireDate, od.status, od.StockRef
 		,od.colour, od.size, od.qty,coalesce(od.grandTot, od.actualGrand) paid, oh.cashierid
 	,oh.till_session, date_format(sp.createdDate,'%d-%m-%Y %H:%i') createdDate
 	from spendPots sp, orderdetail od,orderheader oh, customers cust
@@ -542,6 +514,7 @@ elseif ($result['type']=='C')
 	and oh.transno = od.transno
 	and sp.type = 'C'
 	and od.status in ('J','K')
+    and od.qty < 0
 	and oh.custref = cust.custid
 	and sp.id= $spendPot";
 	$voucher=getSpendPot($spendPot,'C');
@@ -550,12 +523,13 @@ elseif ($result['type']=='C')
 	if (mysqli_affected_rows($db_conn3)>0)
 	{
 		echo "<p>Item(s) Returned :</p>";
+		echo "<table width=100%>";
 		while ($result3=mysqli_fetch_array($results3))
 		{
-			echo "<table width=100%><tr>";
+			echo "<tr>";
 			echo "<td>".$result3['StockRef']."-".$result3['colour']."-".$result3['size']."</td>";
 			echo "<td align=right>".$result3['qty']."</td>";
-			echo "<td align=right>&pound;".number_format($result3['amount']*-1,2)."</td>";
+			echo "<td align=right>&pound;".number_format($result3['paid']*abs($result3['qty'])*-1,2)."</td></tr>";
 			$expires=$result3['expireDate'];
 			$ref=$result3['cashierid']."/".$result3['till_session']."/".$result3['createdDate'];
 			$forename=$result3['forename'];
@@ -703,7 +677,14 @@ if ($direction=='html')
 
 else 
 {
-	$print=print_action($html,$receipt_printer, false);
+    if ($local_printer==1)
+    {
+	   $print=print_action($html,$receipt_printer, false, false);
+    }
+    else
+    {
+        $print=print_action($html,$receipt_printer, false, true);
+    }
 }
 
 }
@@ -896,8 +877,14 @@ else
 	$html=ob_get_clean();
 	#Always goes to paper
 	#Perform the print
-	
-	$print=print_action($html,$receipt_printer, false);
+	if ($local_printer==1)
+        {
+                $print=print_action($html,$receipt_printer, false,false);
+        }
+        else
+        {
+                $print=print_action($html,$receipt_printer, false, true);
+        }
 		if (substr($print, 1,2)=="re")
 		{
 			return 1;
@@ -1005,17 +992,31 @@ $orderno=$_REQUEST['orderno'];
 $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 
 ob_start();
-if ($header==2)
+if ($local_printer==1)
 {
-	echo "<html><body style=\"left:0px;margin:0px;width:420px;background-image:url('../images/tumbling_hearts.png');\">";
+    if ($header==2)
+    {
+    	echo "<html><body style=\"left:20px;margin:20px;width:420px;background-image:url('../images/tumbling_hearts.png');\">";
+    }
+    else {
+    	echo "<html><body style=\"left:20px;margin-left:20px;width:420px\">";
+    }
 }
-else {
-	echo "<html><body style=\"left:0px;margin:0px;width:420px\">";
+else
+{
+    if ($header==2)
+    {
+        echo "<html><body style=\"left:0px;margin:0px;width:420px;background-image:url('../images/tumbling_hearts.png');\">";
+    }
+    else {
+        echo "<html><body style=\"left:0px;margin-left:0px;width:420px\">";
+    }
 }
 
 if ($header==1 || $header==2)
 {
-	echo "<p width=100% align=center><img width=290 src=\"../images/$company-logo.png\" /><br>";
+    $size=getTillType();
+	echo "<p width=100% align=center><img width=290 src=\"../images/".$size['size']."-logo.png\" /><br>";
 }
 echo <<<EOF
 <style>
@@ -1104,7 +1105,7 @@ $customer=getCustomer($orderno);
 ob_start();
 if ($footer=="true")
 {
-	$sql_query="select message from receipt_messages where company = ".$company;
+	$sql_query="select message, footer from receipt_messages where company = ".$company;
 	$messages=$db_conn->query($sql_query);
 	$message=mysqli_fetch_array($messages);
 	
@@ -1126,25 +1127,24 @@ echo "<p width=100% align=center><hr></p>";
 echo "<p class=receiptaddress>VAT: ".$vat."</p>";
 echo "<p width=100% align=center><br></p>";
 
-echo "<table width=100%><tr><td align=left>w:cocorose.co.uk</td><td align=right>f:cocorosewarwick</td></tr>";
-echo "<tr><td align=left>i:cocorosewarwick</td><td align=right>p:cocorosewarwick</td></tr>";
-echo "<tr><td colspan=2><br></td></tr>";
-echo "<tr><td align=left>w:kokua.co.uk</td><td align=right>w:kokuasale.co.uk</td></tr>";
-echo "<tr><td colspan=2><hr></td></tr>";
-echo "</table>";
+echo $message['footer'];
 echo "</html>";
 
 
 return ob_get_clean();
 }
 
-function print_action($html,$printer, $dupe)
+function print_action($html,$printer, $dupe,$output="false")
 {
 
 include '../config.php';
 include_once '../functions/auth_func.php';
 include_once '../functions/barcode_func.php';
 require_once '../functions/dompdf/dompdf_config.inc.php';
+
+    #Firstly, move the last one out of the way. 
+    # This allows for 2 outputs from one transaction
+    rename($receipt_tmp.'/printing.pdf', $receipt_tmp.'/last.pdf');
 
 	if ($dupe=="true")
 	{
@@ -1164,7 +1164,16 @@ require_once '../functions/dompdf/dompdf_config.inc.php';
 		$pdf=$dompdf->output();
 
 		file_put_contents($receipt_tmp."/printing.pdf",$pdf);
+		if ($local_printer<>1)
+		{
+		if ($receipt_host=="")
+		{
+		exec('lp -d '.$printer.' '.$receipt_tmp.'/printing.pdf');
+		}
+		else {
 		exec('lp -h '.$receipt_host.' -d '.$printer.' '.$receipt_tmp.'/printing.pdf');
+		}
+		}
 		unset($pdf);
 		
 		
@@ -1182,8 +1191,16 @@ require_once '../functions/dompdf/dompdf_config.inc.php';
 		$pdf=$dompdf->output();
 		
 		file_put_contents($receipt_tmp."/printing.pdf",$pdf);
-		return exec('lp -h '.$receipt_host.' -d '.$printer.' '.$receipt_tmp.'/printing.pdf');
-		
+		if ($local_printer<>1)
+		{
+    		if ($receipt_host=="")
+    		{
+    		    return exec('lp -d '.$printer.' '.$receipt_tmp.'/printing.pdf');
+    		}
+    		else {
+    		    return exec('lp -h '.$receipt_host.' -d '.$printer.' '.$receipt_tmp.'/printing.pdf');
+    		}
+		}
 	}
 	
 	else 
@@ -1196,6 +1213,10 @@ require_once '../functions/dompdf/dompdf_config.inc.php';
 		$page_count = $dompdf->get_canvas( )->get_page_count( );
 		unset($dompdf);
 		$dompdf= new DOMPDF();
+		if ($page_count<6)
+                {
+                        $page_count=6;
+                }
 		$dompdf->set_paper(array(0,0,(3*72),(1*72)*($page_count+0.1)),"portrait");
 		$dompdf->load_html($html);
 		$dompdf->render();
@@ -1204,7 +1225,14 @@ require_once '../functions/dompdf/dompdf_config.inc.php';
 		file_put_contents($receipt_tmp."/printing.pdf",$pdf);
 		
 		#Execute O/S command to print
-		return exec('lp -h '.$receipt_host.' -d '.$printer.' '.$receipt_tmp.'/printing.pdf');
+		if ($local_printer<>1 && $output=="true")
+		{
+    		if ($receipt_host=="")
+    		{
+    		    return exec('lp -d '.$printer.' '.$receipt_tmp.'/printing.pdf');
+    		}
+		}
 	}
 }
 ?>
+<?php

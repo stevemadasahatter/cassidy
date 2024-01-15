@@ -100,16 +100,18 @@ while ($onetill=mysqli_fetch_array($tills))
 	#Echo out Value of Sales
 	echo "<tr><td class=left>Till Summary</td><td></td><td></td></tr>";
 		
-	$sql_query="select 'Sales' type, st.vatkey vat,sum(if(od.zero_price=1,0, (if (abs(od.actualgrand)>0, od.actualgrand*od.qty, od.grandTot*od.qty)))) total
-			,sum(if(od.zero_price=1,0, (if (abs(od.actualvat)>0, od.actualvat*od.qty, od.vatTot*od.qty)))) vattotal
+	$sql_query="select 'Sales' type, st.vatkey vat
+            , round(sum(if(od.zero_price=1,0,if (abs(od.actualgrand)>0, od.actualgrand*abs(od.qty), od.grandTot*abs(od.qty)))*(100-oh.discount)/100),2) total
+			, round(sum(if(od.zero_price=1,0,if (abs(od.actualvat)>0, od.actualvat*abs(od.qty), od.vatTot*abs(od.qty)))*(100-oh.discount)/100),2) vattotal
 			, count(*) cnt 
 			from orderdetail od, orderheader oh, style st
             where od.transno = oh.transno and st.sku = od.Stockref 
             and oh.company =$company and till in (".$till_id.") 
 			and (if (abs(od.actualgrand)>0, od.actualgrand, od.grandTot)) >= 0 and od.status not in ('A','X','P','N') 
             and od.timestamp >= '$till_date' and od.timestamp < date_add(date_add('$till_date', interval 1 day), interval 6 hour) group by 1,2
-	union select 'Returns' type , st.vatkey vat,sum(if(od.zero_price=1,0,if (abs(od.actualgrand)>0, od.actualgrand*abs(od.qty), od.grandTot*abs(od.qty)))) total
-			, sum(if(od.zero_price=1,0,if (abs(od.actualvat)>0, od.actualvat*abs(od.qty), od.vatTot*abs(od.qty)))) vattotal
+	union select 'Returns' type , st.vatkey vat
+            , round(sum(if(od.zero_price=1,0,if (abs(od.actualgrand)>0, od.actualgrand*abs(od.qty), od.grandTot*abs(od.qty)))*(100-oh.discount)/100),2) total
+			, round(sum(if(od.zero_price=1,0,if (abs(od.actualvat)>0, od.actualvat*abs(od.qty), od.vatTot*abs(od.qty)))*(100-oh.discount)/100),2) vattotal
 			, count(*) cnt 
 			from orderdetail od, orderheader oh, style st
             where od.transno = oh.transno and st.sku = od.Stockref 
@@ -298,7 +300,11 @@ if ($_REQUEST['actionfinal']=="print")
 	$html=generic_header(0);
 	$html.=$html2;
 	echo $html;
-	print_action($html,$receipt_printer,'false');
+	print_action($html,$receipt_printer,'false','true');
+	if ($local_printer==1)
+	{
+	    echo "<script type=text/javascript>printJS('$local_printer_path/printing.pdf');</script>";
+	}
 	exit();
 }
 

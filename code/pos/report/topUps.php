@@ -38,7 +38,7 @@ if ($_REQUEST['action']=="print")
 			padding-top:0px;
 			padding-bottom:0px;
 	}
-	@page { margin:0px;top 0px; margin-top:0px; margin-bottom:0px; }
+	@page { margin:0px;top 0px; margin-top:0px; margin-bottom:0px;margin-left:20px; }
 	</style>
 EOF;
 	
@@ -80,14 +80,14 @@ EOF;
 		$html.="<tr class=receipt><td colspan=6>Incremental List</td></tr>";
 		$html.="<tr class=receipt><td colspan=3>Time Printed</td><td colspan=3>".date("d-m-Y H:i:s")."</td></tr>";
 		
-		$sql_query2="update config set value = '".date("Y-m-d H:i:s")."' where config='fillups'";
+		$sql_query2="update config set value = current_timestamp() where config='fillups'";
 	}
 	elseif ($_REQUEST['interval']=='today')
 	{
 		$sql_query.=" and timestamp >= current_date() ";
 		$html.="<tr class=receipt><td colspan=7>Today's Sales</td></tr>";
 		$html.="<tr class=receipt><td colspan=2>Time Printed</td><td colspan=5>".date("d-m-Y H:i:s")."</td></tr>";
-		$sql_query2="update config set value = '".date("Y-m-d H:i:s")."' where config='fillups'";
+		$sql_query2="update config set value =  current_timestamp() where config='fillups'";
 	}
 	elseif ($_REQUEST['interval']=='interval')
 	{
@@ -98,6 +98,7 @@ EOF;
 	}
 	
 	$html.="</table><table width=90%>";
+	$sql_query.=" order by StockRef, colour";
 	$results=$db_conn->query($sql_query);	
 	#Onscreen will have a different column setup
 	$onscreen=$html;
@@ -124,10 +125,14 @@ EOF;
 	if ($_REQUEST['print']==1)
 	{
 		generic_header(0);
-		print_action($html, $receipt_printer, false);
+		print_action($html, $receipt_printer, false, 'true');
 		$doit=$db_conn->query($sql_query2);
 		deauthenticate();
-		echo "<script type=text/javascript>location.reload();</script>";
+		if ($local_printer==1)
+		{
+		    echo "<script type=text/javascript>printJS('$local_printer_path/printing.pdf');</script>";
+		}
+		echo "<script type=text/javascript>$('#dialog').hide();$('#dimmer').hide();</script>";
 	}
 	else
 	{	

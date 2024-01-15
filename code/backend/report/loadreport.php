@@ -21,14 +21,14 @@ echo "<tr><th>Report Name</th><th>Run</th><th>Schedule</th><th>Delete</th></tr>"
 foreach ($list as $l) {
 	$filename=substr($l, strlen($l)-20);
 	include "./saved/".$filename;
-	$runurl="./report/output.php?action=display&dateout=$dateout&datein=$datein&seasons=$seasons&brandsgrp=$brandsgrp&dataset=$dataset&totals=$totals&batch=1";
+	$runurl="./report/output.php?".urldecode($url);
+	$runurl.="&dateoutovr=".urldecode($dateoutovr);
+	$runurl.="&dateinovr=".urldecode($dateinovr);
 	echo "<tr><td>".urldecode($name)."</td><td><a onclick=\"javascript:runurl('$runurl');\">Run</a></td>
 	<td>Schedule</td>
 	<td><a onclick=\"javascript:del('$filename');\" >Delete</a></td></tr>";
 }
 echo "</table>";
-
-
 
 ?>
 

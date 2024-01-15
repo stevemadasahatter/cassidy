@@ -53,25 +53,29 @@ function getColourways($sku)
 	
 	$colours=getSelect('colours2','');
 	echo "<table>";
-	echo "<tr><td style=\"width:190px;\" >Add Colour</td><td>Colour Ways</td><td>Sale Price</td><td>On Web</td><td>Delete</td></tr>";
-	echo "<tr><td style=\"vertical-align:top;\" rowspan=20><select name=colours onchange=\"javascript:addColour('".$sku."');\" >".$colours."</select></td><td></td><td></td></tr>";
+	echo "<tr><td style=\"width:100px;\" >Add Colour</td><td style=\"vertical-align:top;\" colspan=4><select name=colours onchange=\"javascript:addColour('".$sku."');\" >".$colours."</select></td></tr>";
+    echo "<tr><td>Colour Ways</td><td>Sale Price</td><td>On Web</td><td>Web<br>Redo</td><td>Delete</td><td>Web<br>SalePr</td><td>Web<br>StockQty</td><td>Web<br>RetailPr</td></tr>";
 	
-	$sql_query="select colour, saleprice, web_uploaded from stock where Stockref = '".$sku."'";
+	$sql_query="select colour, saleprice, web_uploaded, web_status from stock where Stockref = '".$sku."'";
 	$results=$db_conn->query($sql_query);
 	while ($result=mysqli_fetch_array($results))
 	{
-		echo "<tr><td>".$result['colour']."</td><td><input name='sp-".$result['colour']."' onblur=\"javascript:salePrice('".$result['colour']."','$sku', this.value);\"  
+		echo "<tr><td>".$result['colour']."</td><td><input style=\"width:55px;\" name='sp-".$result['colour']."' onblur=\"javascript:salePrice('".$result['colour']."','$sku', this.value);\"  
 				type=text value='".$result['saleprice']."' /></td>";
-		if ($result['web_uploaded']==1)
+		if ($result['web_uploaded']==1 and $result['web_status']==1)
 		{
-			echo "<td>Yes</td>";
+		    echo "<td>Yes</td><td><button id=\"".$sku."-".$result['colour']."\" onclick=\"javascript:recycleWeb('".$sku."','".$result['colour']."');\">Confirm</button></td>";
 	
 		}
-		else
+		elseif ($result['web_uploaded']==0 and $result['web_status']==1)
 		{
-			echo "<td>No</td>";
+		    echo "<td>No</td><td><button disabled id=\"".$sku."-".$result['colour']."\" >Pending</button></td>";
 		}
-		echo "<td><button onclick=javascript:delVariant('".$sku."','".$result['colour']."');>Delete</button></td></tr>";
+		else { echo "<td>N/A</td><td>N/A</td>"; }
+		echo "<td><button onclick=javascript:delVariant('".$sku."','".$result['colour']."');>Delete</button></td>";
+		echo "<td><button onclick=javascript:selectsale('".$sku."-".$result['colour']."',$('input[name=sp-".$result['colour']."]').val());>Update</button></td>";
+		echo "<td><button onclick=javascript:select_qty('".$sku."-".$result['colour']."',".$result['saleprice'].");>Update</button></td>";
+		echo "<td><button onclick=javascript:selectretail('".$sku."-".$result['colour']."',$('input[name=retailprice]').val());>Update</button></td>";
 	}
 	
 	echo "</table>";
@@ -106,7 +110,8 @@ function createStkAdj($sku, $colour, $sizeindex, $qty, $reason, $date, $referenc
 	include './auth_func.php';
 	$db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 	
-	$sql_query="insert into stkadjustments values (".$_SESSION['CO'].",'".$sku."','".$colour."',".$qty.",".$reason.",'".$date."',".$sizeindex.",'".$reference."')";
+	$sql_query="insert into stkadjustments (company, sku, colour, qty, reasonid, datetrack, sizeid, reference)  
+                values (".$_SESSION['CO'].",'".$sku."','".$colour."',".$qty.",".$reason.",'".$date."',".$sizeindex.",'".$reference."')";
 	$do_it=$db_conn->query($sql_query);
 	
 }

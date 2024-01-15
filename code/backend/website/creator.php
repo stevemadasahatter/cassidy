@@ -15,8 +15,15 @@ $sessionId = $proxy->login($proxyUser, $proxyPass);
 
 		#$catgory_type=$proxy->call($sessionId, 'product_attribute.options','497');
 		
-		$colours=$proxy->call($sessionId, 'product_attribute.info',array('51'));
-		print_r($colours);
+		//$colours=$proxy->call($sessionId, 'product_attribute.info',array('51'));
+        try 
+        {
+            $colours=$proxy->call($sessionId, 'catalog_product.info','JOURNALJUMPER-GREY');
+        }
+        catch (Exception $e)
+        {
+            echo "No";
+        }
 		#$index=array_search(strtolower('GREY'), array_column(array_map('strtolower',$colours),'label'));
 		#$index=array_search(strtolower('Grey'), array_column(array_map('strtolower',$colours['label']),'label'));
 		#print_r(array_map('strtolower',$colours));

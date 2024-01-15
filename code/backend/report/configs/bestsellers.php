@@ -47,5 +47,5 @@ $order_by=" sum(od.qty) desc LIMIT 30";
 $title="Best Sellers";
 $orient="portrait";
 $rollup=0;
-$debug=1;
+$debug=0;
 $category="Sales";

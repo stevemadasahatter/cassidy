@@ -27,7 +27,7 @@ $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 
 $sql_query="select od.transno, od.StockRef, coalesce(od.actualgrand,od.grandTot) total, od.lineno, od.size, 
 		date_format(od.timestamp, '%d/%m/%Y') transDate, od.colour, od.status from orderdetail od, orderheader oh 
-		where od.status in ('C', 'A', 'J','K','V')
+		where od.status in ('C', 'A', 'J','K','V','S')
 		and oh.transno=od.transno
 		and oh.custref=$custref
 		order by oh.transDate desc, lineno asc
@@ -38,7 +38,8 @@ echo "<table><tr>";
 echo "<th>Order#</th><th>Date</th><th>Code/SKU</th><th>Colour</th><th>Size</th><th>Price</th><th>Status</th></tr>";
 while ($result=mysqli_fetch_array($results))
 {
-	echo "<tr onclick=\"javascript:loadOrder(".$result['transno'].",".$custref.");\">";
+	//echo "<tr onclick=\"javascript:loadOrder(".$result['transno'].",".$custref.");\">";
+    echo "<tr>";
 	echo "<td>".$result['transno']."</td>";
 	echo "<td>".$result['transDate']."</td>";
 	echo "<td>".$result['StockRef']."</td>";

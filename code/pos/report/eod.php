@@ -96,16 +96,18 @@ while ($onetill=mysqli_fetch_array($tills))
 	#Echo out Value of Sales
 	echo "<tr><td class=left>Till Summary</td><td></td><td></td></tr>";
 	
-	$sql_query="select 'Sales' type, st.vatkey vat,sum(if(od.zero_price=1,0, (if (abs(od.actualgrand)>0, od.actualgrand*od.qty, od.grandTot*od.qty)))) total
-			,sum(if(od.zero_price=1,0, (if (abs(od.actualvat)>0, od.actualvat*od.qty, od.vatTot*od.qty)))) vattotal
+	$sql_query="select 'Sales' type, st.vatkey vat
+            , round(sum(if(od.zero_price=1,0,if (abs(od.actualgrand)>0, od.actualgrand*abs(od.qty), od.grandTot*abs(od.qty)))),2) total
+			, round(sum(if(od.zero_price=1,0,if (abs(od.actualvat)>0, od.actualvat*abs(od.qty), od.vatTot*abs(od.qty)))),2) vattotal
 			, count(*) cnt 
 			from orderdetail od, orderheader oh, style st
             where od.transno = oh.transno and st.sku = od.Stockref 
             and oh.company =$company and till in (".$till_id.") 
-			and (if (abs(od.actualgrand)>0, od.actualgrand, od.grandTot)) >= 0 and od.status not in ('A','X','P','N') 
+			and (if (abs(od.actualgrand)>0, od.actualgrand, od.grandTot)) >= 0 and od.status not in ('A','X','P','N','S') 
             and od.timestamp >= '$till_date' and od.timestamp < date_add(date_add(current_date(), interval 1 day), interval 6 hour) group by 1,2
-	union select 'Returns' type , st.vatkey vat,sum(if(od.zero_price=1,0,if (abs(od.actualgrand)>0, od.actualgrand*abs(od.qty), od.grandTot*abs(od.qty)))) total
-			, sum(if(od.zero_price=1,0,if (abs(od.actualvat)>0, od.actualvat*abs(od.qty), od.vatTot*abs(od.qty)))) vattotal
+	union select 'Returns' type , st.vatkey vat
+            , round(sum(if(od.zero_price=1,0,if (abs(od.actualgrand)>0, od.actualgrand*abs(od.qty), od.grandTot*abs(od.qty)))),2) total
+			, round(sum(if(od.zero_price=1,0,if (abs(od.actualvat)>0, od.actualvat*abs(od.qty), od.vatTot*abs(od.qty)))),2) vattotal
 			, count(*) cnt 
 			from orderdetail od, orderheader oh, style st
             where od.transno = oh.transno and st.sku = od.Stockref 
@@ -260,7 +262,7 @@ group by 1";
 	echo "<tr><td class=left><b>".$summary2['type']."</b></td><td align=right><b>".$summary2['cnt']."</b><td align=right><b>&pound;".$summary2['total']."</b></td></tr>";
 	echo "<tr><td class=left><b>Transactions</b></td><td></td><td align=right><b>$cnttakings</b></td></tr>";
 	echo "<tr><td class=left><b>Avg Trans Value</b></td><td></td><td align=right><b>".round(($totaltakings/$cnttakings),2)."</b></td></tr>";
-	$pettycash=getPettyCash('192.168.1.2');
+	$pettycash=getPettyCash($till);
 	echo "<tr><td class=left><b>Float Amount</b></td><td></td><td align=right><b>&pound;".number_format($pettycash['closeval'],2)."</b></td></tr>";
 	
 
@@ -294,9 +296,9 @@ ob_end_clean();
 if ($_REQUEST['actionfinal']=="print")
 {
 //	#close all till sessions for the day
+
+
 	$sql_query="update till_sessions set active=0 where active=1 and company=".$company;
-	$doit=$db_conn->query($sql_query);
-	$sql_query="delete from sessions where company = $company";
 	$doit=$db_conn->query($sql_query);
 	openDrawer(0);
 	$EODID=getConfig('EODID-'.$company)+1;
@@ -305,16 +307,43 @@ if ($_REQUEST['actionfinal']=="print")
 	$html=generic_header(0);
 	$html.=$html2;
 	echo $html;
-	print_action($html,$receipt_printer,'false');
+	               if ($local_printer==1)
+                {
+                        print_action($html,$receipt_printer, false,'false');
+
+                }
+                else
+                {
+                        print_action($html,$receipt_printer, false,'true');
+                }
+
 	session_destroy();
 	deauthenticate();
 	unset($_SESSION);
-	echo "<script>javascript:location.reload();</script>";
+	$sql_query="delete from sessions where company = $company";
+	$doit=$db_conn->query($sql_query);
+	if ($local_printer==1)
+	{
+		echo "<script type=text/javascript>printJS('$local_printer_path/printing.pdf');</script>";
+	        echo "<script type=text/javascript>setTimeout(function(){location.reload();},2000);</script>";
+	}
+	        echo "<script type=text/javascript>setTimeout(function(){location.reload();},2000);</script>";
 	exit();
 }
 
 
 else { echo $html2;}
+
+$EODID=getConfig('EODID-'.$company);
+$sql_query="select closeval from tilldrawer where EODID=$EODID";
+$results=$db_conn->query($sql_query);
+$result=mysqli_fetch_array($results);
+if ($result['closeval']=="")
+{
+    echo "<p width=100% align=right><button id=cancel onclick=\"javascript:location.reload();\">Cancel</button></p>";
+    echo "<script type=text/javascript>alert('Banking report MUST be printed first');</script>";
+    exit();
+}
 
 echo "<p width=100% align=right><button id=cancel onclick=\"javascript:location.reload();\">Cancel</button>
 		<button id=print onclick=\"javascript:printSession();\">Print</button>

@@ -28,6 +28,7 @@ if ($code<>"")
 		, brands.nicename
 		, seasons.season
 		, stock.colour
+        , colours.nicename nicecolour
 		, style.description
 		, sizes.size1
 		, sizes.size2
@@ -45,16 +46,23 @@ if ($code<>"")
 		, sizes.size14
 		, sizes.size15
 		, sizes.size16
+		, sizes.size17
+		, sizes.size18
+		, sizes.size19
+		, sizes.size20
 		, stock.retailprice
-		from stock, styleDetail, sizes, style, brands, seasons
+		from stock, styleDetail, sizes, style, brands, seasons, colours
 		where 1=1
 		and styleDetail.sku=stock.Stockref
 	and stock.company=style.company
 	and stock.company=styleDetail.company
+    and stock.colour = colours.colour
 	and stock.Stockref=style.sku
+    and style.sizekey=sizes.sizekey
 	and styleDetail.brand=brands.id
 	and styleDetail.season=seasons.id
-	and stock.colour=\"".$barcode['colour']."\"";
+	and stock.colour=\"".$barcode['colour']."\"
+    and stock.Stockref = \"".$barcode['sku']."\"";
 }
 
 else 
@@ -63,6 +71,7 @@ else
 	, brands.nicename
 	, seasons.season
 	, stock.colour
+    , colours.nicename nicecolour
 	, style.description
 	, sizes.size1
 	, sizes.size2
@@ -80,8 +89,12 @@ else
 	, sizes.size14
 	, sizes.size15
 	, sizes.size16
+	, sizes.size17
+	, sizes.size18
+	, sizes.size19
+	, sizes.size20
 	, stock.retailprice
-	from stock, styleDetail, sizes, style, brands, seasons, colours, category
+	from stock, styleDetail use index (search3), sizes, style, brands, seasons, colours, category
 	where 1=1
 	and styleDetail.sku=stock.Stockref
 	and stock.company=style.company
@@ -123,7 +136,7 @@ else
 	{
 		$sql_query.=" and stock.retailprice<=".$priceto;
 	}
-	$sql_query.=" order by styleDetail.season desc
+	$sql_query.=" order by style.sku asc limit 40
 ";
 	
 //	echo $sql_query;
@@ -132,88 +145,102 @@ else
 
 $results=$db_conn->query($sql_query);
 echo "<table class=itemsearchtable>";
-echo "<tr class=itemheader><td class=itemheader>SKU</td><td class=itemheader>Colour</td><td class=itemheader>RRP</td>
-		<td class=itemheader>Brand</td><td class=itemheader>Season</td><td class=itemheader colspan=16>Size/Inventory</td>
-			<td class=itemheader colspan=16>Size/On Appro</td></tr>";
+echo "<tr class=itemheader><td class=itemheader></td><td class=itemheader>SKU</td><td class=itemheader>Brand</td><td class=itemheader>Season</td><td class=itemheader>Descripton</td><td class=itemheader>RRP</td>
+		<td class=itemheader>Colour</td><td class=itemheader>Col Code</td><td class=itemheader colspan=16>Sizes</td></tr>";
 $g=0;
 while ($item=mysqli_fetch_array($results))
 {
-	$stock=stockBalance($item['sku'], $item['colour']);
-	if (($g % 2)==0)
-	{
-		echo "<tr class=odd>";
-	}
-	else
-	{
-		echo "<tr class=even>";
-	}
-	
-	echo "<td rowspan=1 class=\"itemresult\">".$item['sku']."</td>";
-	echo "<td rowspan=1 class=\"itemresult\">".$item['colour']."</td>";
-	echo "<td rowspan=1 class=\"itemresult\">".$item['retailprice']."</td>";
-	echo "<td rowspan=1 class=\"itemresult\">".$item['nicename']."</td>";
-	echo "<td rowspan=1 class=\"itemresult\">".$item['season']."</td>";
-	for ($j=0;$j<=1;$j++)
-	{
-		for ($i=1;$i<17;$i++)
-		{
-			if ($item['size'.$i]<>"")
-			{
-				echo "<td class=\"itemresult size\">".$item['size'.$i]."</td>";
-			}
-			else
-			{
-				echo "<td class=\"itemresult nosize\">".$item['size'.$i]."</td>";
-			}
-		}
-	}
-	echo "</tr>";
-	
-	if (($g % 2)==0)
-	{
-		echo "<tr class=odd>";
-	}
-	else
-	{
-		echo "<tr class=even>";
-	}
-	
-	echo "<td align=left colspan=4>".$item['description']."</td><td align=left>Availability</td>";
-	
-	for ($j=1;$j<17;$j++)
-	{
-		if ($item['size'.$j]<>"")
-		{
-				echo "<td onclick=\"javascript:addItem('".$item['sku']."','".$item['colour']."',$j,'0');\" class=\"itemresult\">".$stock['physical'.$j]."</td>";
-		}
-		else 
-		{
-			echo "<td onclick=\"javascript:addItem('".$item['sku']."','".$item['colour']."',$j,'0');\"' class=\"itemresult nosize\"></td>";
-		}
-	}
-	
-	
-	for ($j=1;$j<17;$j++)
-	{
-		if ($item['size'.$j]<>"")
-		{
-			echo "<td class=\"itemresult appro\">".$stock['appro'.$j]."</td>";
-		}
-		else
-		{
-			echo "<td class=\"itemresult nosize\"></td>";
-		}	
-	}
-	
-	echo "</tr>";
-	echo "<tr><td colspan=21 class=itemsep></td></tr>";
-	$g++;
+    unset($stock);
+    $stock=stockBalance($item['sku'], $item['colour']);
+    $photo=getWebImage($item['sku'], $item['colour']);
+    if ($photo[0]=="")
+    {
+        echo "<tr class=even><td></td>";
+    }
+    else
+    {
+        echo "<tr class=even><td><img onclick=\"showImg('".$photo[0]."','".$pics_path."');\" width=50 src=\"".$pics_path."/".$photo[0]."\" /></td>";
+    }
+    
+    echo "<td rowspan=1 class=\"itemresult sku\">".$item['sku']."</td>";
+    echo "<td rowspan=1 class=\"itemresult\">".$item['brand']."</td>";
+    echo "<td rowspan=1 class=\"itemresult\">".$item['season']."</td>";
+    echo "<td rowspan=1 class=\"itemresult descr\">".$item['description']."</td>";
+    echo "<td rowspan=1 class=\"itemresult\">&pound;".$item['retailprice']."</td>";
+    echo "<td rowspan=1 class=\"itemresult colour\">".$item['nicecolour']."</td>";
+    echo "<td rowspan=1 class=\"itemresult colour\">".$item['colour']."</td>";
+    for ($i=1;$i<21;$i++)
+    {
+        if ($item['size'.$i]<>"")
+        {
+            echo "<td class=\"itemresult size\">".$item['size'.$i]."</td>";
+        }
+        else
+        {
+            echo "<td class=\"itemresult nosize\"></td>";
+        }
+    }
+    echo "</tr>";
+    
+    echo "<tr class=odd>";
+    
+    echo "<td colspan=8 class=\"itemmeta\">In Stock</td>";
+    for ($j=1;$j<21;$j++)
+    {
+        if ($item['size'.$j]<>"")
+        {
+            if (is_numeric($stock['physical'.$j]))
+            {
+                echo "<td onclick=\"javascript:addItem('".$item['sku']."','".$item['colour']."',".$j.",'".$item['nonstock']."');\" class=\"itemresult size\">".$stock['physical'.$j]."</td>";
+            }
+            else
+            {
+                echo "<td onclick=\"javascript:addItem('".$item['sku']."','".$item['colour']."',".$j.",'".$item['nonstock']."');\" class=\"itemresult nosize\"></td>";
+            }
+        }
+        else
+        {
+            echo "<td class=\"itemresult nosize\"></td>";
+        }
+    }
+    echo "<td rowspan=1 class=\"itemresult\"></td>";
+    echo "<td rowspan=1 class=\"itemresult\"></td>";
+    echo "<td rowspan=1 class=\"itemresult\"></td>";
+    echo "</tr>";
+    
+    echo "<tr class=odd>";
+    
+    echo "<td colspan=8 class=\"itemmeta\">On Appro</td>";
+    for ($j=1;$j<21;$j++)
+    {
+        if ($item['size'.$j]<>"")
+        {
+            echo "<td class=\"itemresult appro\">".$stock['appro'.$j]."</td>";
+        }
+        else
+        {
+            echo "<td class=\"itemresult nosize\"></td>";
+        }
+    }
+    echo "<td rowspan=1 class=\"itemresult\"></td>";
+    echo "<td rowspan=1 class=\"itemresult\"></td>";
+    echo "<td rowspan=1 class=\"itemresult\"></td>";
+    echo "</tr>";
+    echo "<tr><td colspan=36 class=itemsep></td></tr>";
+    $g++;
 }
 
 echo "</table>";
 ?>
 
 <script type="text/javascript">
+
+function showImg(photo, picspath)
+{
+	$('#dialog2').show();
+	document.getElementById("image").innerHTML="<img style=\"height:700px;box-shadow:10px 10px #636363;\" src="+picspath+"/"+photo+" />";
+}
+
 function selectCust(cust)
 {
 	$('#custresult').slideUp();
@@ -234,6 +261,8 @@ function addItem(sku,colour,size, nonstock)
 	    $('#dialog').css('top','10%');
 	    $('#dialog').css('left','50%');
 	    $('#dialog').css('margin-left','-35%');
+	    $('#dialog').css('height','700px');
+	    $('#dialog').css('overflow','scroll');
 		$('#temp').load('./order/bagContents.php?action=price&sku='+urlsku+'&colour='+colour+'&sizeindex='+size+'&nonstock='+nonstock);
 		$('#dimmer').show();
 		$('#dialog').show();

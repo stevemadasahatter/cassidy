@@ -3,10 +3,11 @@
 $dataset="Stock - Sell Through";
 #SQL including table joins (LEAVE TRAILING SPACE)
 $sql="
-sum(summ.s_qty) 'Starting Qty', sum(summ.stocking_cost) 'Stocking Cost'
-, coalesce(sum(summ.sales_qty),0) 'Sales Qty' , sum(summ.instock_cost) 'Instock Cost', coalesce(round(sum(summ.costofsale),2),0) 'Sales Cost'
-, coalesce(round(avg(summ.sales_qty/summ.s_qty)*100,1),0) '%Sell Thru (Qty)' , coalesce(round(avg(summ.costofsale/summ.stocking_cost)*100,1),0) '%Sell Thru (Cost)'
-from ( select stockqty.brand Brand , stockqty.sku , stockqty.colour , stockqty.sid season_id
+min(summ.description) 'Description', sum(summ.s_qty) 'Received Stock', sum(summ.stocking_cost) 'Cost Value'
+, coalesce(sum(summ.sales_qty),0) 'Sales Qty' , coalesce(sum(summ.s_qty),0) - coalesce(sum(summ.sales_qty),0) 'Instock Qty'
+, round(avg(summ.costprice),2) 'Item Cost', round(avg(summ.retailprice),2) 'Item RRP'
+, coalesce(round(avg(summ.sales_qty/summ.s_qty)*100,1),0) '%Sold' 
+from ( select stockqty.description, stockqty.brand Brand , stockqty.sku , stockqty.colour , stockqty.sid season_id
 , stockqty.season season_name , stockqty.bid brand_id , stockqty.stock , stockqty.costprice, soldqty.costofsale
 , stockqty.retailprice , soldqty.qty sales_qty, if(abs(stockqty.adj_qty)>0,stockqty.adj_qty,0) adj_qty
 , coalesce(stockqty.purchased,stockqty.stock) purchased, (stockqty.stock - if(abs(stockqty.adj_qty)>0,stockqty.adj_qty,0)) s_qty
@@ -17,7 +18,7 @@ from ( select stockqty.brand Brand , stockqty.sku , stockqty.colour , stockqty.s
 , (stockqty.costprice * (if(abs(soldqty.qty)>0,soldqty.qty,0))) sales_cost
 , soldqty.salesvalue sales_value
 , if(abs(soldqty.salesnet)>0,soldqty.salesnet,0) sales_net , soldqty.salesvat salesvat
-from (select sd.sku , sto.colour , sto.costprice , sto.retailprice , sea.nicename season
+from (select sd.sku , sd.description, sto.colour , sto.costprice , sto.retailprice , sea.nicename season
 , sea.id sid , bra.id bid , bra.nicename brand , adj.qty adj_qty, coalesce((physical1 + physical2 + physical3 + physical4 + physical5
 + physical6 + physical7 + physical8 + physical9 + physical10 + physical11 + physical12 + physical13
 + physical14 + physical15),0) stock , (purchased1 + purchased2 + purchased3 + purchased4 + purchased5
@@ -54,6 +55,9 @@ $filters[3]=array('summ.sku SKU','summ.brand Brand','summ.season_name Season','s
 
 #Row titles
 $filters[4]=array('SKU','Brand','Season','Colour');
+
+$seperators=array(0,0,0,1,1,0,0,0);
+//$high_titles=array('',1,'Sales',3,'',3);
 
 
 #What is the date field called?

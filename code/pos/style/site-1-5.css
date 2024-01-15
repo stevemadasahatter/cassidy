@@ -170,7 +170,7 @@ h2
 }
 #custsearchmaster
 {
-	width:29%;
+	width:32%;
 	height:80px;
 	float:left;
 	padding-top:10px;
@@ -186,11 +186,23 @@ h2
 {
 	box-sizing: border-box;
 	float:left;
-	padding-top:30px;
+	padding-top:12px;
 	font-family: 'Open Sans', sans-serif;
 	vertical-align:middle;
 }
 
+#stats
+{
+		position:absolute;
+		padding:20px;
+		border:1px solid #ddd;
+		z-index:9999;
+		background-color:#ffffff;
+		display:none;
+		box-shadow:0 -1px 0 #e5e5e5, 0 0 2px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.24);
+		width:95%;
+		height:95%;
+}
 
 #itemtitle
 {
@@ -233,7 +245,7 @@ table.custdetail td
 	box-sizing: border-box;
 	float:left;
 	clear:right;
-	width:15%;
+	width:13%;
     height:90px;
     margin-top:10px;
     box-shadow:0 -1px 0 #e5e5e5, 0 0 2px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.24);
@@ -297,7 +309,7 @@ table.itemsearchtable tr.even td
 	box-sizing: border-box;
 	float:left;
 	clear:right;
-	width:29%;
+	width:27%;
 	height:90px;
 	z-index:100;
 	padding-top:10px;
@@ -713,7 +725,7 @@ table.receipt th
 #vouchers
 {
 	width:680px;
-	height:300px;
+	height:600px;
 	display:none;
 	z-index:999;
 	margin:10px auto;
@@ -721,6 +733,8 @@ table.receipt th
 	background-color:#ffffff;
 	top:15%;
 	left:8%;
+	overflow-y: auto;
+	border:20px solid #eee;
 	
 }
 

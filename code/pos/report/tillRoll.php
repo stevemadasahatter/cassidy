@@ -19,6 +19,8 @@ if ($type=="now")
 if ($type=="yesterday")
 {
 	$datePred="between date_sub(current_date(), interval 1 day) and current_date() ";
+    $dateFrom= date('Y-m-d',strtotime("-1 days"));
+    $dateTo= date('Y-m-d');
 }
 
 if ($type=="range")
@@ -51,7 +53,7 @@ while ($work=mysqli_fetch_array($works))
 	if ($work['type']=='Sale')
 	{
 		$html.="Sale";
-		$html.=printReceipt($work['id'], 'html', $dateFrom);
+		$html.=printReceipt($work['id'], 'html', 'false',$dateFrom);
 		$html.="<hr>";
 
 	}
@@ -87,7 +89,16 @@ if ($_REQUEST['print']<>"true")
 
 if ($_REQUEST['print']=="true")
 {
-	print_action($html, $receipt_printer, "false");
+    print_action($html, $receipt_printer, "false","false");
+    if ($local_printer==1)
+    {
+        echo "<script type=text/javascript>printJS('$local_printer_path/printing.pdf');</script>";
+    }
+    else
+    {
+        print_action($html,$receipt_printer,"false","true");
+    }
+    
 }
 ?>
 

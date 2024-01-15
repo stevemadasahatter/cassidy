@@ -1,23 +1,22 @@
 <?php
 include '../config.php';
-include '../website/config.php';
+include_once '../website/config.php';
 include_once '../functions/auth_func.php';
 include_once '../functions/web_func.php';
 
+#Note down start time for update later
+$time=date('Y-m-d H:i:s');
 
 include '../website/config.php';
 #Set up SOAP connection
 $options = array(
-'uri' => 'urn:Magento',
-'location' => 'http://www.cocorose.co.uk:82/index.php/api/soap/index',
-'trace' => true,
-'connection_timeout' => 120,
-'wsdl_cache' => WSDL_CACHE_NONE,
+    'trace' => true,
+    'connection_timeout' => 120,
+    'wsdl_cache' => WSDL_CACHE_NONE,
 );
 
 $proxy = new SoapClient($soapURL, $options);
 $sessionId = $proxy->login($proxyUser, $proxyPass);
-
 ini_set('DISPLAY_ERRORS','on');
 $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 $db_conn2=mysqli_connect($db_host, $db_username, $db_password, $db_name);
@@ -81,10 +80,16 @@ foreach ($result as $item)
 		$sql_query="select count(*) cnt from stock where StockRef ='$sku' and colour = '$colour'";
 		$results=$db_conn->query($sql_query);
 		$result=mysqli_fetch_array($results);
+		$stock=$result['cnt'];
+		
+		$sql_query="select count(*) cnt from webDetails sku ='$sku' and colour = '$colour'";
+		$results=$db_conn->query($sql_query);
+		$result=mysqli_fetch_array($results);
+		$webdetails=$result['cnt'];
 		
 		echo "SKU is ".$sku;
 		echo " colour is ".$colour."\n";
-		if ($result['cnt']==1)
+		if ($stock==1 && $webdetails==1) 
 		{
 			echo " and found a stock record to update \n";
 			#Update the record as being a stock item online

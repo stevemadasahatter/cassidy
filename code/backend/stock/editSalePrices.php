@@ -148,7 +148,8 @@ function commit(sku,colour)
 	var current=$('[id=\"'+sku+'-'+colour+'\"]').val();
         $('[id=\"'+sku+'-'+colour+'-row\"]').css('background-color','#fff');
      coloursafe=encodeURIComponent(colour);
-	$('[id=\"'+sku+'-'+colour+'-tick\"]').load('./stock/editSalePrices.php?action=commit&sku='+sku+'&colour='+coloursafe+'&saleprice='+current);
+	skusafe=encodeURIComponent(sku);
+	$('[id=\"'+sku+'-'+colour+'-tick\"]').load('./stock/editSalePrices.php?action=commit&sku='+skusafe+'&colour='+coloursafe+'&saleprice='+current);
 }
 
 function highlight(sku,colour)

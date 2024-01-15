@@ -11,7 +11,7 @@ require_once('/var/www/pos/functions/class/BCGcode128.barcode.php');
 $colorFront = new BCGColor(0, 0, 0);
 $colorBack = new BCGColor(255, 255, 255);
 
-$font = new BCGFontFile('/var/www/pos/functions/dompdf/lib/fonts/Arial.ttf');
+$font = new BCGFontFile('/var/www/pos/functions/dompdf/lib/fonts/Arial.ttf','10');
 
 $code = new BCGcode128(); // Or another class name from the manual
 $code->setScale(2); // Resolution

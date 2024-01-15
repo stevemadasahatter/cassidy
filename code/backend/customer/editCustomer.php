@@ -10,10 +10,11 @@ if ($action=="")
 	echo "<h2>Search for a Customer to Edit</h2>";
 	#Must be searching for a size then
 	echo "<table>";
-	echo "<tr><td>Name</td><td>Address</td><td>Phone number</td></tr>";
+	echo "<tr><td>Name</td><td>Address</td><td>Phone number</td><td>Email</td></tr>";
 	echo "<tr><td><input autocomplete=off onkeyup=\"javascript:srch(this.value,'n');\" name=name></td>
         <td><input autocomplete=off onkeyup=\"javascript:srch(this.value,'a');\" name=name></td>
         <td><input autocomplete=off onkeyup=\"javascript:srch(this.value,'p');\" name=name></td>
+        <td><input autocomplete=off onkeyup=\"javascript:srch(this.value,'e');\" name=name></td>
         <td><button onclick=\"javascript:select();\" >Add</button></td></tr>";
 	echo "</table>";
 	
@@ -41,6 +42,11 @@ elseif ($action=="results")
             or landline like  '%".$searchterm."%')
             limit 30";
 	}
+	elseif ($_REQUEST['type']=='e')
+	{
+	    $sql_query="select custid,title, forename, lastname, addr1, addr2, postcode,mobile, landline, email from customers where email like '%".$searchterm."%'
+            limit 30";
+	}
 	else 
 	{
 	    $sql_query="select custid,title, forename, lastname, addr1, addr2, postcode from customers where concat(addr1, addr2, postcode)
@@ -51,7 +57,7 @@ elseif ($action=="results")
 	
 	if ($_REQUEST['type']=='p')
 	{
-	    echo "<tr><th>Customer</th><th>Landline</th><th>Mobile</th></tr>";
+	    echo "<tr><th>Customer</th><th></th><th></th></tr>";
 	    while ($result=mysqli_fetch_array($results))
 	    {
 	        echo "<tr onclick=\"javascript:select('".$result['custid']."');\" >
@@ -61,7 +67,18 @@ elseif ($action=="results")
 	    }
 	    
 	}
-	
+	elseif ($_REQUEST['type']=='e')
+	{
+	    echo "<tr><th>Customer</th><th>Landline</th><th>Mobile</th></tr>";
+	    while ($result=mysqli_fetch_array($results))
+	    {
+	        echo "<tr onclick=\"javascript:select('".$result['custid']."');\" >
+                <td>".$result['title']." ".$result['forename']." ".$result['lastname']."</td>
+                <td align=center>".$result['email']."</td><td align=center>".$result['postcode']."</td>";
+	        echo "</tr>";
+	    }
+	    
+	}
 	else {
         	echo "<tr><th>Customer</th><th>Address</tr>";
         	while ($result=mysqli_fetch_array($results))
@@ -219,10 +236,10 @@ $sql_query="select date_format(od.timestamp, '%d/%m/%Y %H:%i') datetime
 	, od.StockRef, od.colour,  bra.nicename brand, od.size
     , sea.season
     , od.qty
-	, if (od.actualgrand>0, od.actualgrand,od.grandtot) paid
-    , if (od.actualgrand>0,od.grandtot - od.actualgrand, 0) discount
-    , round((if (od.actualgrand>0,od.grandtot - od.actualgrand, 0))/od.grandTot*100,1) discountage
-from orderdetail od, orderheader oh, seasons sea, brands bra, styleDetail sd
+	, if (abs(od.actualgrand)>0, od.actualgrand,od.grandtot) paid
+    , if (abs(od.actualgrand)>0,od.grandtot - od.actualgrand, 0) discount
+    , round((if (abs(od.actualgrand)>0,od.grandtot - od.actualgrand, 0))/od.grandTot*100,1) discountage
+from orderdetail od, orderheader oh, seasons sea force index (primary), brands bra force index (primary), styleDetail sd
 where oh.custref = $term
 and od.transno = oh.transno
 and sea.id = sd.season

@@ -32,19 +32,40 @@ $custref=$_SESSION['custref'];
 if ($custref>0 && $custref<>4)
 {
 	$sql_query="select forename, lastname from customers where custid = $custref";
+
 	$results=$db_conn->query($sql_query);
 	$names=mysqli_fetch_array($results);
 	
-	echo "<table><tr><td rowspan=2><img class=reduce src=./images/search.png /></td><td><div id=buttons onchange=\"javascript:searchCust();\" ><input type=radio id=searchtype1 checked=checked name=searchtype value=name><label class=half for=searchtype1>Name</label><input type=radio id=searchtype2 name=searchtype value=addr>
-			<label class=half  for=searchtype2>Address</label></div></td><td style=\"position:relative;top:15px;\" rowspan=2><button class=half  onclick=\"javascript:clearCust();\">Clear</button></td></tr>";
-	echo "<tr><td>".$names['forename']." ".$names['lastname']."</td></tr></table>";
+	echo "<table><tr><td><div id=buttons onchange=\"javascript:searchCust();\" >
+    <input type=radio id=searchtype1 checked=checked name=searchtype value=name>
+        <label class=half for=searchtype1>Name</label>
+    <input type=radio id=searchtype2 name=searchtype value=addr>
+		<label class=half  for=searchtype2>Address</label>
+    <input type=radio id=searchtype3 name=searchtype value=email>
+        <label class=half for=searchtype3>EMail</label>
+    <input type=radio id=searchtype4 name=searchtype value=phone>
+        <label class=half for=searchtype4>Phone</label>
+     </div></td></tr>";
+	echo "<tr><td>".$names['forename']." ".$names['lastname']."</td>
+          <td style=\"position:relative;\" rowspan=2><button class=half  onclick=\"javascript:clearCust();\">Clear</button></td>
+          </tr></table>";
 }
 
 else 
 {
-	echo "<table><tr><td rowspan=2><img class=reduce src=./images/search.png /></td><td><div id=buttons onchange=\"javascript:searchCust();\"><input type=radio id=searchtype1  name=searchtype checked=checked value=name><label class=half for=searchtype1>Name</label><input type=radio id=searchtype2 name=searchtype value=addr>
-			<label class=half for=searchtype2>Address</label></div></td><td style=\"position:relative;top:15px;\" rowspan=2><button class=half onclick=\"javascript:newCust();\" >New</button></td></tr>";
-	echo "<tr><td><input onkeyup=\"javascript:searchCust();\" id=cust ></input></td></tr></table>";
+	echo "<table><tr><td><div id=buttons onchange=\"javascript:searchCust();\">
+    <input type=radio id=searchtype1  name=searchtype checked=checked value=name>
+        <label class=half for=searchtype1>Name</label>
+    <input type=radio id=searchtype2 name=searchtype value=addr>
+	   <label class=half for=searchtype2>Address</label>
+    <input type=radio id=searchtype3 name=searchtype value=email>
+        <label class=half for=searchtype3>EMail</label>
+    <input type=radio id=searchtype4 name=searchtype value=phone>
+        <label class=half for=searchtype4>Phone</label>
+    </div></td></tr>";
+	echo "<tr><td><input style=\"width:100%;\" onkeyup=\"javascript:searchCust();\" id=cust ></input></td>
+          <td style=\"position:relative;\" rowspan=2><button class=half onclick=\"javascript:newCust();\" >New</button></td>
+          </tr></table>";
 }
 
 ?>
@@ -62,9 +83,17 @@ function searchCust()
 	{
 		var type='name';
 	}
-	else
+	else if ($('#searchtype2').prop('checked')==true)
 	{
 		var type='addr';
+	}
+	else if ($('#searchtype3').prop('checked')==true)
+	{
+		var type='email';
+	}
+	else if ($('#searchtype4').prop('checked')==true)
+	{
+		var type='phone';
 	}
 	$('#custresult').show();
 	$('#custresult').slideDown();

@@ -54,7 +54,7 @@ elseif ($action=="save")
 	if ($_REQUEST['term']=="undefined")
 	{
 		$setClause="'".$_REQUEST['username']."',\"".$_REQUEST['forename']."\",\"".$_REQUEST['lastname']."\",\"".$_REQUEST['level']."\",\""
-				.$_REQUEST['active']."\",\"".$_REQUEST['multi']."\",\"".$_REQUEST['passwd']."\"";
+				.$_REQUEST['active']."\",\"".$_REQUEST['multi']."\",md5(\"".$_REQUEST['passwd']."\")";
 	
 
 		$sql_query="insert into users (username, forename, lastname, level, active, multi,password)

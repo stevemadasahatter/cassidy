@@ -2,6 +2,7 @@
 
 include '../config.php';
 include '../functions/auth_func.php';
+include '../functions/print_func.php';
 $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 
 session_start();
@@ -25,7 +26,11 @@ if ($_REQUEST['action'])
 	{
 		opendrawer(0);
 		deauthenticate();
-		echo "<script type=text/javascript>location.reload();</script>";
+		echo "<script type=text/javascript>setTimeout(function(){location.reload();},2000);</script>";
+	}
+	if ($_REQUEST['action']=="reprint")
+	{
+	    return exec('lp -d '.$printer.' '.$receipt_tmp.'/printing.pdf');
 	}
 }
 
@@ -35,7 +40,6 @@ $custref=getCustomer($_SESSION['orderno']);
 if ($auth==1)
 {
 	echo "<p width=100% align=right style=\"font-size:10pt;margin-top:5px;\">";
-	echo "<button id=\"fillUps\" >Fill<br>Ups</button>";
 	echo "<button id=giftvoucher>Gift<br>Voucher</button>";
 	echo "<button title=\"".$foo."\" id=stockEnq>Stock<br>Enquiry</button>";
 	echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
@@ -64,7 +68,18 @@ if ($auth==1)
 else 
 {
 	echo "<p width=100% align=right style=\"font-size:10pt;margin-top:5px;\">";
+	if ($local_printer==1)
+	{
+	    echo "<button onclick=\"printJS('$local_printer_path/printing.pdf');\">Reprint<br>Last</button>";
+	    
+	}
+	else
+	{
+	    echo "<button id=\"reprint\" >Reprint<br>Last</button>";
+	}
+	
 	echo "<button id=\"fillUps\" >Fill<br>Ups</button>";
+	echo "<button id=\"barcodes\" >Barcode<br>Print</button>";
 	echo "<button   id=stockEnq>Stock<br>Enquiry</button>";
 	echo "</p>";
 }
@@ -76,8 +91,13 @@ echo "</tr></table>";
 $('#opendrawer').click(function()
 {
 	$('#controls').load('./page/controls.php?action=opendrawer');
+	//$('#controls').load('http://192.168.1.14/drawer.php');
+	
 });
 
+$('#reprint').click(function(){
+	$('#controls').load('./page/controls.php?action=reprint');
+});
 
 $('#allOnAppro').click(function(){
     $('#dialog').append('<div id=temp></div>');
@@ -142,6 +162,17 @@ $('#pettyCashTrans').click(function(){
     $('#dialog').css('left','40%');
     $('#dialog').css('margin-left','-15%');
 	$('#temp').load('./page/pettyCashTrans.php');
+	$('#dimmer').show();
+	$('#dialog').show();
+
+});
+
+$('#barcodes').click(function(){
+    $('#dialog').append('<div id=temp></div>');
+    $('#dialog').css('top','0%');
+    $('#dialog').css('left','40%');
+    $('#dialog').css('margin-left','-15%');
+	$('#temp').load('/backend/stock/printBarcode.php?close=close');
 	$('#dimmer').show();
 	$('#dialog').show();
 

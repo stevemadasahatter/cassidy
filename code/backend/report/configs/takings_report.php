@@ -1,14 +1,15 @@
 <?php
 
-$dataset="Takings Report";
+$dataset="Financial Report";
 #SQL including table joins (LEAVE TRAILING SPACE)
 $sql=" 
 sum(ten.PayValue) Payment
-, round(((sum(od.actualnet) - sum(sto.costprice))/sum(od.actualnet))*100,1) as margin
-from orderdetail od, styleDetail style, seasons sea, brands bra, stock sto, category cat, colours col, tenders ten, TenderTypes tent
+, round(((sum(od.actualnet*(100-oh.discount)/100) - sum(sto.costprice))/sum(od.actualnet*(100-oh.discount)/100))*100,1) as margin
+from orderdetail od, styleDetail style, seasons sea, brands bra, stock sto, category cat, colours col, tenders ten, TenderTypes tent, orderheader oh
 where 1=1
 and od.StockRef = sto.Stockref
 and od.colour = sto.colour
+and od.transno = oh.transno
 and od.StockRef = style.sku
 and style.season = sea.id
 and style.brand = bra.id
@@ -40,3 +41,4 @@ $date="od.timestamp";
 #can we group by everything (to be implemented)
 $group_by=array(1,1,1,1);
 $category="Financial";
+$debug=0;

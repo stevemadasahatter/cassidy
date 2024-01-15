@@ -28,13 +28,14 @@ $sql_query="
 select pg.nicename Grp
 	, sum(od.qty) Qty
     , round((sum(od.qty/summs.qty)*100),2) Qtypct
-    , sum(if (od.zero_price=1,0,(if (abs(od.actualgrand) > 0, od.actualgrand*abs(od.qty),od.grandTot*abs(od.qty))))) Value
+    , round(sum(if (od.zero_price=1,0,(if (abs(od.actualgrand) > 0, od.actualgrand*abs(od.qty),od.grandTot*abs(od.qty))))),2) Value
 	, round((sum(if(abs(od.actualgrand)>0,od.actualgrand, od.grandTot)*abs(od.qty)/summs.vals))*100,2) Valuepct
-from orderdetail od, stock sto, styleDetail sd, brands bra, category cat, ProductGroup pg
+from orderdetail od, stock sto, styleDetail sd, brands bra, category cat, ProductGroup pg, orderheader oh
 cross join
 (select sum(od.qty) qty, sum(if(abs(od.actualgrand)>0,od.actualgrand, od.grandTot)*abs(od.qty)) as vals
-from orderdetail od, stock sto, styleDetail sd, brands bra, category cat, ProductGroup pg
+from orderdetail od, stock sto, styleDetail sd, brands bra, category cat, ProductGroup pg, orderheader oh
 where od.StockRef = sto.StockRef
+and od.transno = oh.transno
 and sto.company = sd.company
 and od.StockRef = sd.sku
 and sd.brand = bra.id
@@ -44,6 +45,7 @@ and od.colour =sto.colour
 and od.status not in ( 'A','X','N','P','W','S')
 and od.timestamp between $datePred) summs
 where od.StockRef = sto.StockRef
+and od.transno = oh.transno
 and od.StockRef = sd.sku
 and od.colour =sto.colour
 and od.status not in ( 'A','X','N','P','W','S')

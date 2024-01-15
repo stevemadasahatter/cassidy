@@ -25,6 +25,7 @@ $orderno=$_SESSION['orderno'];
 $action=$_REQUEST['action'];
 $lineno=$_REQUEST['lineno'];
 $barcode=$_REQUEST['barcode'];
+$custDiscount=getCustomer($orderno);
 
 if ($barcode==1)
 {
@@ -68,7 +69,7 @@ if ($action=="add")
 	if ($itemsize=="")
 	{
 	    #Bad scan
-	    echo "<script>alert('Bad Scan. Please retry');</script>";
+	    echo "<script>alert('Bad Scan. Please retry. Error code ".$barcode."');</script>";
 	    
 	    exit();
 	}
@@ -195,7 +196,7 @@ if ($action=="void")
 			.($newrecord['actualnet']*-1).",".($newrecord['actualvat']*-1).",".($newrecord['actualgrand']*-1).",".($newrecord['costprice']*-1).")";
 			$negrecord=$db_conn->query($sql_query);
 			#Change original line to voided
-			$sql_query="update orderdetail set status = 'V' where transno = $orderno and lineno = $lineno";
+			$sql_query="update orderdetail set status = 'K' where transno = $orderno and lineno = $lineno";
 			$doit=$db_conn->query($sql_query);
 			
 			#Set to NULL if zero
@@ -209,100 +210,127 @@ if ($action=="void")
 
 if ($action=="unvoid")
 {
-	$sql_query="select transno, StockRef, colour, size, sizeindex, qty, netTot, vatTot, grandTot from orderdetail where transno = $orderno and lineno =$lineno";
+	$sql_query="select transno, StockRef, colour, size, sizeindex, qty, netTot, vatTot, grandTot, status from orderdetail where transno = $orderno and lineno =$lineno";
 	$newrecords=$db_conn->query($sql_query);
 	$newrecord=mysqli_fetch_array($newrecords);
 	$nextline=getOrderLinesCnt();
-	$sql_query="delete from orderdetail where transno= $orderno and status in ('K','J')";
-	$remrecord=$db_conn->query($sql_query);
-	#Take original line off appro
-	$sql_query="update orderdetail set status = 'C' where transno = $orderno and lineno = $lineno";
-	$doit=$db_conn->query($sql_query);
-	updateReadout();
+	if ($newrecord['status']=='K')
+	{
+	   $sql_query="delete from orderdetail where transno= $orderno and status in ('K') and qty <0";
+	   $remrecord=$db_conn->query($sql_query);
+	   $sql_query="update orderdetail set status = 'C' where transno = $orderno and status ='K' and qty >0";
+	   $doit=$db_conn->query($sql_query);
+	   updateReadout();
+	}
+	elseif ($newrecord['status']=='J')
+	{
+	    $sql_query="delete from orderdetail where transno= $orderno and status in ('J') and lineno = $lineno";
+	    $remrecord=$db_conn->query($sql_query);
+	}
 
 }
 
 #Get order lines
 if ($orderno<>0)
 {
-	$sql_query="select StockRef,colour, size, qty, lineno, status, grandtot, actualgrand, onsale from orderdetail where transno=$orderno and status not in ('X','V') order by lineno";
+	$sql_query="select StockRef,colour, size, qty, lineno, status, grandtot, actualgrand, onsale from orderdetail where transno=$orderno and status not in ('V') order by lineno";
 	$results=$db_conn->query($sql_query);
 }
 
-echo "<table width=100%><tr class=bagtablehead><td class=bagtablehead>SKU</td><td class=bagtablehead>Price</td>
+echo "<table width=100%><tr class=bagtablehead><td class=bagtablehead></td><td class=bagtablehead>SKU</td><td class=bagtablehead>Price</td>
 		<td class=bagtablehead>Discount</td><td class=bagtablehead>New Price</td>
-		<td align=center class=bagtablehead>Qty</td><td align=center class=bagtablehead>Status</td>
+		<td align=center class=bagtablehead>Qty</td>
 		<td align=center class=bagtablehead><td></td></tr>";
 while ($bagitem=mysqli_fetch_array($results))
 {
 	if ($bagitem['qty']>0)
 	{
-		$photo=getWebImage($bagitem['StockRef'], $bagitem['colour']);
-		if ($photo[0]=="")
-		{
-			echo "";
-		}
-		else
-		{
-			echo "<tr>";
-		}
-		echo "<td>".$bagitem['StockRef']."-".$bagitem['colour']."-".$bagitem['size']."</td>";
-		echo "<td id=price onclick=\"javascript:discount('".urlencode($bagitem['StockRef'])."','".$bagitem['lineno']."', 'full', ".$bagitem['grandtot'].");\" class=\"";
-		if ($bagitem['onsale']==1)
-		{
-			echo "sale";
-		}	
-				
-		echo " clickable\">&pound;".$bagitem['grandtot']."</td>";
-	
-		if ($bagitem['actualgrand']=="")
-		{
-			echo "<td id=\"price clickable\"></td><td></td><td onclick=\"changeQty('".$bagitem['StockRef']."');\" align=center class=clickable>".$bagitem['qty']."</td>";
-		}
-		elseif ($bagitem['actualgrand']<>"" && $bagitem['actualgrand'] <> $bagitem['grandtot'])
-		{
-			echo "<td id=\"price clickable\">&pound;".(number_format(($bagitem['grandtot']-$bagitem['actualgrand']),2))."</td>
-				<td onclick=\"javascript:discount('".urlencode($bagitem['StockRef'])."','".$bagitem['lineno']."', 'discount',". $bagitem['actualgrand'].");\" id=\"price\">&pound;".$bagitem['actualgrand']."</td>
-				<td onclick=\"changeQty('".urlencode($bagitem['StockRef'])."');\" align=center class=clickable>".$bagitem['qty']."</td>";
-		}
-		
-		else 
-		{
-			echo "<td></td><td></td><td onclick=\"changeQty('".urlencode($bagitem['StockRef'])."');\" align=center class=clickable>".$bagitem['qty']."</td>";
-		}
-		
-		echo "<td align=center>";
-		
-		if ($bagitem['status']=='C')
-		{
-			echo "<button class=half onclick=\"javascript:voidLine(".$bagitem['lineno'].");\">Return</button>";
-		}
-		elseif ($bagitem['status']=='A')
-		{
-			 echo "<button  class=half  onclick=\"javascript:negateLine(".$bagitem['lineno'].");\">Remove</button>";
-			 echo "<button  class=half  onclick=\"javascript:onAppro(".$bagitem['lineno'].");\" >Buy</button>";
-		}
-		elseif ($bagitem['status']=='V' && $bagitem['qty']>0)
-		{
-			echo "Returned&nbsp;&nbsp;&nbsp;&nbsp;";
-			echo "<button  class=half  onclick=\"javascript:UNvoidLine(".$bagitem['lineno'].",'V');\">Undo</button>";
-		}
-		elseif ($bagitem['status']=='J')
-		{
-			echo "Returned&nbsp;&nbsp;&nbsp;&nbsp;";
-			echo "<button  class=half  onclick=\"javascript:UNvoidLine(".$bagitem['lineno'].",'J');\">Undo</button>";
-		}
-		else {
-			echo "<button  class=half  onclick=\"javascript:removeLine(".$bagitem['lineno'].");\" >Remove</button>";
-			echo "<button  class=half  onclick=\"javascript:voidLine2(".$bagitem['lineno'].");\" >Return</button>";
-		}
-		echo "</td></tr>";
+	    if ($bagitem['status']=="X")
+	    {
+	        $onapproline=1;
+	    }
+	    elseif ($bagitem['status']<>"J" && $bagitem['status']<>"K")
+	    {
+    		$photo=getWebImage($bagitem['StockRef'], $bagitem['colour']);
+    		if ($photo[0]=="")
+    		{
+    			echo "<tr><td></td>";
+    		}
+    		else
+    		{
+    			echo "<tr><td><img width=50 src=\"".$pics_path."/".$photo[0]."\" /></td>";
+    		}
+    		echo "<td>".$bagitem['StockRef']."-".$bagitem['colour']."-".$bagitem['size']."</td>";
+    		echo "<td id=price onclick=\"javascript:discount('".urlencode($bagitem['StockRef'])."','".$bagitem['lineno']."', 'full', ".$bagitem['grandtot'].");\" class=\"";
+    		if ($bagitem['onsale']==1)
+    		{
+    			echo "sale";
+    		}	
+    				
+    		echo " clickable\">&pound;".$bagitem['grandtot']."</td>";
+    	
+    		if ($bagitem['actualgrand']=="")
+    		{
+
+    			echo "<td id=\"price clickable\"></td><td></td><td onclick=\"changeQty('".$bagitem['StockRef']."','".$bagitem['colour']."');\" align=center class=clickable>"
+    		              .$bagitem['qty']."</td>";
+    			     
+    		}
+    		elseif ($bagitem['actualgrand']<>"" && $bagitem['actualgrand'] <> $bagitem['grandtot'])
+    		{
+    			echo "<td id=\"price clickable\">&pound;".(number_format(($bagitem['grandtot']-$bagitem['actualgrand']),2))."</td>
+    				<td onclick=\"javascript:discount('".urlencode($bagitem['StockRef'])."','".$bagitem['lineno']."', 'discount',". $bagitem['actualgrand'].");\" id=\"price\" class=\"price clickable\">&pound;".$bagitem['actualgrand']."</td>
+    				<td onclick=\"changeQty('".urlencode($bagitem['StockRef'])."');\" align=center class=clickable>".$bagitem['qty']."</td>";
+    		}
+    		
+    		else 
+    		{
+    			echo "<td></td><td onclick=\"changeQty('".urlencode($bagitem['StockRef'])."');\" align=center class=clickable>".$bagitem['qty']."</td>";
+    		}
+    		
+    		echo "<td align=center>";
+    		
+    		if ($bagitem['status']=='C')
+    		{
+    			echo "<button class=half onclick=\"javascript:voidLine(".$bagitem['lineno'].");\">Return</button>";
+    		}
+    		elseif ($bagitem['status']=='A')
+    		{
+    			 echo "<button  class=half  onclick=\"javascript:negateLine(".$bagitem['lineno'].");\">Remove</button>";
+    			 echo "<button  class=half  onclick=\"javascript:onAppro(".$bagitem['lineno'].");\" >Buy</button>";
+    		}
+    		elseif ($bagitem['status']=='V' && $bagitem['qty']>0)
+    		{
+    			echo "Returned&nbsp;&nbsp;&nbsp;&nbsp;";
+    			echo "<button  class=half  onclick=\"javascript:UNvoidLine(".$bagitem['lineno'].",'V');\">Undo</button>";
+    		}
+    		elseif ($bagitem['status']=='J')
+    		{
+    			echo "Returned&nbsp;&nbsp;&nbsp;&nbsp;";
+    			echo "<button  class=half  onclick=\"javascript:UNvoidLine(".$bagitem['lineno'].",'J');\">Undo</button>";
+    		}
+
+    		else {
+    		    if ($onapproline==1)
+    		    {
+    		       // echo "<button  class=half  onclick=\"javascript:onAppro(".$bagitem['lineno']."-2);\" >OnAppro</button>";
+    		    }
+    		    else
+    		    {
+    		        echo "<button  class=half  onclick=\"javascript:removeLine(".$bagitem['lineno'].");\" >Remove</button>";
+    		        echo "<button  class=half  onclick=\"javascript:voidLine2(".$bagitem['lineno'].");\" >Return</button>";
+    		    }
+    			
+    			unset($onapproline);
+    		}
+    		echo "</td></tr>";
+	    }
 	}
 	else
 	{
 		if ($bagitem['status']=="J" || $bagitem['status']=="K")
 		{
-			                echo "<tr><td>".$bagitem['StockRef']."-".$bagitem['colour']."-".$bagitem['size']."</td>";
+			                echo "<tr><td></td><td>".$bagitem['StockRef']."-".$bagitem['colour']."-".$bagitem['size']."</td>";
                 echo "<td id=price onclick=\"javascript:discount('".$bagitem['StockRef']."','".$bagitem['lineno']."','full',".$bagitem['grandtot'].");\" class=\"";
                 if ($bagitem['onsale']==1)
                 {

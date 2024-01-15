@@ -2,7 +2,7 @@
 include './config.php';
 include './functions/auth_func.php';
 
-
+header('Access-Control-Allow-Origin: *');
 
 #Is it already open
 $session=getTillSession($_COOKIE['tillIdent']);
@@ -25,7 +25,7 @@ if ($_REQUEST['action']=="deauth")
 
 <html>
 <head>
-	<title>Cassidy : Point of Sale</title>
+	<title><?php echo $title_tag;?> | Cassidy</title>
 	<?php 
 	$size=getTillType();
 	$company=getTillCompany($_COOKIE['tillIdent']);
@@ -38,11 +38,16 @@ if ($_REQUEST['action']=="deauth")
 	<script src="./style/jquery-1.11.3.min.js"></script>
 	<script src="./style/jquery-cr/jquery-ui.js"></script>
 	<script src="./style/jquery.price_format.2.0.js"></script>
+	<script src="./style/print.min.js"></script>
+	<script type="text/javascript">
+	</script>
+
 </head>
 <body>
 <div id=page>
 <div id=bkgrdimage></div>
 <div id=dialog></div>
+<div id=stats></div>
 <div id=message><p></p><br><button onclick="javascript:closeMessage();">Close</button></div>
 <div id=dimmer></div>
 <div id=custresult class=ajax></div>

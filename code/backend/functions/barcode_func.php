@@ -62,7 +62,7 @@ function getNextBarcode()
         include '../config.php';
         $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 
-        $sql_query="select max(barcode) barcode from style";
+        $sql_query="select max(CONVERT(barcode, SIGNED INTEGER)) barcode from style";
         $maxes=$db_conn->query($sql_query);
 
         $max=mysqli_fetch_array($maxes);

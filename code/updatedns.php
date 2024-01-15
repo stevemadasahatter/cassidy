@@ -48,7 +48,7 @@ echo $result;
   {
 
     echo "Processing '$key' ............";
-    $contents = readfile("https://cp.dnsmadeeasy.com/servlet/updateip?username=".$strUsername."&password=".$strPassword."&id=".$val."&ip=".$strNewIpAddress);
+    $contents = readfile('https://ipv4.cloudns.net/api/dynamicURL/?q=MjcyNzE5ODoyMDAyMDk4NTk6MDk4NDJmNDliZGFjZGI1MmFjZDBlZjk5NzkyYjJiYjYxNzNhMWMwYzJhMDk1ZTA4OGJkMzQ4ZjM2YmMxZWNlMg');
     echo trim($contents);
    echo "\n";
     flush();

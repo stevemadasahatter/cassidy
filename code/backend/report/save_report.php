@@ -4,6 +4,9 @@ include "../config.php";
 
 $action=$_REQUEST['action'];
 
+$url=strpos(urldecode($_SERVER[REQUEST_URI]),'php?');
+$uri=substr(urldecode($_SERVER[REQUEST_URI]), $url+4);
+
 if ($action=="display")
 {
 	foreach ($_REQUEST as $key=>$value)
@@ -22,8 +25,8 @@ if ($action=="display")
 	echo "<tr><td>This year</td><td><input type=radio id=dates value=year></input></td></tr>";
 	echo "<tr><td>Beginning of time</td><td><input type=radio  id=dates value=all></input></td></tr>";
 	echo "<tr><td>Name of report</td><td><input type=text  id=title></input></td></tr>";
-	echo "<tr><td></td><td><button onclick=javascript:cancel(); >Cancel</button><input type=hidden id=uri value=\"$fileoutput\" />";
-	echo "<button onclick=javascript:submit(); >Submit</button><input type=hidden id=uri value=\"$fileoutput\" /></td></tr>";
+	echo "<tr><td></td><td><button onclick=javascript:cancel(); >Cancel</button><input type=hidden id=urlsub value=\"".urlencode($uri)."\" />";
+	echo "<button onclick=javascript:submit(); >Submit</button></tr>";
 	echo "</table>";
 }
 
@@ -51,28 +54,24 @@ if ($action=="save")
 	}
 	$fileoutput2="<?php\n";
 	$dateout=" now() ";
-	foreach ($_REQUEST as $key=>$value)
-	{
-		if ($value!="" && $key!="datein" && $key!="dateout" && $key!="action" && $key!="fileoutput" && $key!="dates")
-		{
-			$enc=urlencode($value);
-			$fileoutput2.="$".$key."=\"".$enc."\";\n";
-		}
+    
 	
-	}
+	$enc=urlencode($_REQUEST['uri']);
+	$fileoutput2.="$"."url=\"".$enc."\";\n";
+	$fileoutput2.="$"."name=\"".$_REQUEST['name']."\";\n";
 	
 	$enc=urlencode($dateout);
-	$fileoutput2.="$"."dateout=\"".$enc."\";\n";
-	
+	$fileoutput2.="$"."dateoutovr=\"".$enc."\";\n";
+
 	$enc=urlencode($datein);
-	$fileoutput2.="$"."datein=\"".$enc."\";\n";
-	$fileoutput2.=$_REQUEST['fileoutput'];
+	$fileoutput2.="$"."dateinovr=\"".$enc."\";\n";
 	#make up filename
 	$filename=date('DmYHMs').".dfn";
 	$success=file_put_contents($report_save."/".$filename, $fileoutput2);
+	
 }
 
-echo $fileoutput;
+//echo $fileoutput;
 ?>
 
 <script type=text/javascript>
@@ -84,12 +83,15 @@ function submit(){
 	var getString="";
 	var dates=$('input:radio[id=dates]:checked').val();
 	var title=$('#title').val();
+	var urlsub=$('#urlsub').val();
 	var name=encodeURI(title);
 	getString=getString+'dates='+dates+'&';
-	getString=getString+'fileoutput='+$('#uri').val()+'&';
 	getString=getString+'name='+name+'&';
 	getString=getString+'action=save&';
+	getString=getString+'uri='+urlsub;
 	$('#temp').load('./report/save_report.php?'+getString);
+	$('#temp').remove();
+	$('#dimmer').hide();
 };
 
 function cancel()

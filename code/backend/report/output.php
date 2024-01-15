@@ -3,6 +3,7 @@ include '../config.php';
 include '../functions/auth_func.php';
 include '../functions/print_func.php';
 include '../functions/field_func.php';
+require_once '../functions/dompdf/dompdf_config.inc.php';
 
 echo <<<EOF
 <html>
@@ -16,6 +17,8 @@ echo <<<EOF
 		<link href='https://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
         <script src="//code.jquery.com/jquery-1.10.2.js"></script>
         <script src="../style/jquery-cr/jquery-ui.js"></script>
+        <script src="./tableExport.js"></script>
+        <script src="./jquery.base64.js"></script>
 </head>
 <body>
 
@@ -26,12 +29,11 @@ $action=$_REQUEST['action'];
 
 $runtime=date('d/m/Y');
 session_start();
-
 $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 
-if ($action<>"download" && $action<>"print")
+if ($action<>"download" && $action<>"print" && $action<>'file')
 {
-	echo "<p align=right><button id=close>Close</button></p>";
+	echo "<p align=right><button id=export>Export</button><button id=close>Close</button></p>";
 }
 
 		
@@ -228,28 +230,48 @@ EOF;
 		{
 			if ($_REQUEST[$filters[0][$i]]!="")
 			{
-				$predicate.="and ".$filters[1][$i]."='".$_REQUEST[$filters[0][$i]]."' ";
+			    if ($_REQUEST[$filters[0][$i].'like']==1)
+			    {
+				    $predicate.="and ".$filters[1][$i]." like '%".$_REQUEST[$filters[0][$i]]."%' ";
+			    }
+			    else 
+			    {
+			        $predicate.="and ".$filters[1][$i]."='".$_REQUEST[$filters[0][$i]]."' ";
+			    }
 				$predicate_text.= "<p>".$filters[4][$i]." : ".getNiceName($filters[0][$i],$_REQUEST[$filters[0][$i]])."</p>";
 			}
 		}
 
-	
+	       if ($_REQUEST['dateinovr'])
+	       {
+	           $_REQUEST['batch']=1;
+	           $_REQUEST['datein']=$_REQUEST['dateinovr'];
+	       }
+	       
+	       if ($_REQUEST['dateoutovr'])
+	       {
+	           $_REQUEST['dateout']=$_REQUEST['dateoutovr'];
+	       }
+	       
 			#add date
 			if ($_REQUEST['batch']==1)
 			{
 				#preformatted
 				$sql_date=str_replace('[[DATE]]', " $date between ".$_REQUEST['datein']." and ".$_REQUEST['dateout']." ", $sql);
 				$sql_date=str_replace('[[DDATE]]', " between ".$_REQUEST['datein']." and ".$_REQUEST['dateout']." ", $sql_date);
+				$predicate_text.="<p>Date : ".$_REQUEST['datein']." - ".$_REQUEST['dateout']."</p>";
+				
 			}
 			else
 			{
 				$sql_date=str_replace('[[DATE]]', " $date between STR_TO_DATE('".$_REQUEST['datein']." 00:00:00', '%m/%d/%Y %H:%i:%s') and STR_TO_DATE('".$_REQUEST['dateout']." 23:59:59', '%m/%d/%Y %H:%i:%s') ", $sql);
 				$sql_date=str_replace('[[DDATE]]', " between STR_TO_DATE('".$_REQUEST['datein']." 00:00:00', '%m/%d/%Y %H:%i:%s') and STR_TO_DATE('".$_REQUEST['dateout']." 23:59:59', '%m/%d/%Y %H:%i:%s') ", $sql_date);
+				$predicate_text.="<p>Date : ".date_format(date_create($_REQUEST['datein']), 'd/m/Y')." - ".date_format(date_create($_REQUEST['dateout']),'d/m/Y')."</p>";
 			}
 
 			
 			//$predicate.="and $date between STR_TO_DATE('".$_REQUEST['datein']." 00:00:00', '%m/%d/%Y %H:%i:%s') and STR_TO_DATE('".$_REQUEST['dateout']." 23:59:59', '%m/%d/%Y %H:%i:%s') ";
-			$predicate_text.="<p>Date : ".date_format(date_create($_REQUEST['datein']), 'd/m/Y')." - ".date_format(date_create($_REQUEST['dateout']),'d/m/Y')."</p>";
+			
 
 			#Add group by clause
 			#build array
@@ -372,7 +394,8 @@ EOF;
 	$num_rows=mysqli_affected_rows($db_conn);
 	$predicate_text.="<p>Rows Fetched : ".$num_rows."</p><br>";
 	echo $predicate_text;
-	echo "<table class=report>";
+	echo "<table id=\"data_table\" class=report>";
+	echo "<thead>";
 	echo "<tr>";
 	$elements=count($groupby);
 	
@@ -426,7 +449,7 @@ EOF;
 		$i++;
 	}
 
-	echo "</tr>";
+	echo "</tr></thead>";
 	
 	$cols=count($colnames)-$elements;
 	#First row will be a summary row unless there is only 1 level of summary
@@ -514,7 +537,7 @@ EOF;
 			}
 			elseif ($i<=$elements-1  && $_REQUEST['totals']==0 )
 			{
-				if ($prevresult[$colnames[$i]]<>$row)
+				if ($prevresult[$colnames[$i]]<>$row || $_REQUEST['dupe']<>1)
 				{
 					echo "<td align=left>$row</td>";
 				}
@@ -592,7 +615,83 @@ if ($action=="print")
 
 if ($action=="download")
 {
-	download_action($html,$main_printer, $orient);
+	download_action($html,$main_printer, $orient, 'display');
+	
+}
+
+if ($action=="file")
+{    
+
+    #Email file
+    require_once "Mail.php";
+    //define the receiver of the email
+    $to = "sdkellymail@gmail.com,rebecca@cocorose.co.uk";
+    
+    //define the subject of the email
+    $subject = 'Your report';
+    //create a boundary string. It must be unique
+    //so we use the MD5 algorithm to generate a random hash
+    $random_hash = md5(date('r', time()));
+    //define the headers we want passed. Note that they are separated with \r\n
+    //read the atachment file contents into a string,
+    //encode it with MIME base64,
+    //and split it into smaller chunks
+    $attachment_chunk = chunk_split(base64_encode(download_action($html,$main_printer, $orient, 'file')));
+    //define the body of the message.
+    ob_start(); //Turn on output buffering
+        ?>
+--PHP-mixed-<?php echo $random_hash; ?>
+
+Content-Type: multipart/alternative; boundary="PHP-alt-<?php echo $random_hash; ?>"
+
+--PHP-alt-<?php echo $random_hash; ?>
+
+Content-Type: text/html; charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+
+<h2>Your shopping receipt</h2>
+<p>Please find your shopping receipt attached for your convenience. Thanks again for your custom.</p>
+<p>Kind regards</p>
+<p>Coco Rose</p>
+--PHP-alt-<?php echo $random_hash; ?>--
+
+--PHP-mixed-<?php echo $random_hash; ?>
+
+Content-Type: application/pdf; name="report.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment
+
+<?php echo $attachment_chunk; ?>
+--PHP-mixed-<?php echo $random_hash; ?>--
+
+
+<?php
+//copy current buffer contents into $message variable and delete current output buffer
+$message = ob_get_clean();
+
+$host = "smtp.gmail.com";
+$username = "rebecca@cocorose.co.uk";
+$password = "R0semaryandthym3!";
+$from="shop@cocorose.co.uk";
+
+$headers = array (
+    'To' => $to,
+    'Subject' => $subject,
+    'MIME-Version' => '1.0',
+    'Content-type' => 'multipart/mixed; boundary="PHP-mixed-'.$random_hash.'"',
+    'return-receipt-to' => $from ,
+    'return-path' => $from,
+    'From' =>  $from);
+
+$smtp = Mail::factory('smtp',
+    array ('host' => $host,
+        'port'=> 587,
+        'auth' => true,
+        'socket_options' => array('ssl' => array('verify_peer_name' => false)),
+        'debug' => true,
+        'username' => $username,
+        'password' => $password));
+    $mail = $smtp->send($to, $headers, $message);
 }
 
 
@@ -602,6 +701,14 @@ if ($action=="download")
 <script type="text/javascript">
 $(document).ready(function(){
 	$('button').button();
+	$("#export").click(function() {
+		var export_type = 'excel';
+		$('#data_table').tableExport({
+		type : export_type,
+		escape : 'false',
+		ignoreColumn: []
+		});
+		});
 });
 
 $('#close').click(function()
@@ -719,4 +826,6 @@ function download_report()
     	getString=getString+'dupe='+dupe+'&';
 	window.open('./output.php?'+getString);
 }
+
+
 </script>

@@ -29,6 +29,7 @@ function authenticate($username, $password,$company, $till)
 		"','".$username."','".$till."','".$company."',0)";
 		$update=$db_conn->query($sql_query);
 		$done=mysqli_commit($db_conn);
+		//print_r($done);
 		syslog(LOG_INFO,"User $username authenticated OK");
 		$_SESSION['rollID']=newTillRoll();
 		return 0;
@@ -178,18 +179,15 @@ function setTillSession($status)
 		if ($num_rows>0)
 		{	
 			$sql_query="insert into tilldrawer (till, tillsession, EODID, startval) values ('".$till."',".$tillsession_in.",$EODID,".$till_session['startval'].")";
-			echo $sql_query;
 		}
 		else 
 		{
 			#This is the first of the day, so we need to take the previous value
 			$prevEOD=$EODID-1;
 			$sql_query="select tillsession, startval, closeval from tilldrawer where EODID=".$prevEOD;
-			echo $sql_query;
 			$tillsessions=$db_conn->query($sql_query);
 			$till_session=mysqli_fetch_array($tillsessions);
 			$sql_query="insert into tilldrawer (till, tillsession, EODID, startval) values ('".$till."',".$tillsession_in.",$EODID,".$till_session['closeval'].")";
-			echo $sql_query;
 		}
 		$doit=$db_conn->query($sql_query);
 	}
@@ -225,7 +223,7 @@ function createOrder($till, $custref)
 	$discount=mysqli_fetch_array($results);
 	$tillsession=getTillSession($till);
 	$tillcompany=getTillCompany($till);
-	$sql_query="insert into orderheader (company, till, till_session, custref,cashierid, discount) values ($tillcompany, '".$till."','".$tillsession."','".$custref."','".$cashier."',".$discount['discount'].")";
+	$sql_query="insert into orderheader (company, till, till_session, custref,cashierid, discount, status) values ($tillcompany, '".$till."','".$tillsession."','".$custref."','".$cashier."',".$discount['discount'].",'P')";
 	$results=$db_conn->query($sql_query);
 	$result=mysqli_fetch_array($results);
 	$_SESSION['orderno']=mysqli_insert_id($db_conn);
@@ -283,6 +281,7 @@ function getItemPrice($sku2, $colour)
 			where stock.Stockref='".$sku."' and stock.colour='".$colour."' and style.vatkey = vatrates.vatkey and stock.Stockref=style.sku";
 	$results=$db_conn->query($sql_query);
 	$result=mysqli_fetch_array($results);
+	$total=bagTotals();
 		if ($result['onsale']==1 && $result['saleprice']==0)
 		{	
 			$returnprice['sale']="";
@@ -291,16 +290,20 @@ function getItemPrice($sku2, $colour)
 		{
 			$returnprice['sale']=$result['saleprice'];
 		}
-		else
+		elseif ($result['onsale']<>1 && $total['discount']<>0)
 		{
-			$returnprice['sale']="";
+		    $returnprice['sale']=$result['retailprice']-($result['retailprice']*($total['discount'])/100);
+		}
+		else 
+		{
+		    $returnprice['sale']="";
 		}
 		$returnprice['price']=$result['retailprice'];	
 		$returnprice['costprice']=$result['costprice'];
 	return array('price'=>$returnprice['price'], 'sale'=>$returnprice['sale'], 'rate'=>$result['rate'], 'onsale'=>$result['onsale'], 'vatable'=>$result['vatable'], 'costprice'=>$returnprice['costprice']);
 }
 
-function bagTotals($order)
+function bagTotals($order="")
 {
 	session_start();
 	include '/var/www/pos/config.php';
@@ -331,17 +334,9 @@ function bagTotals($order)
 		$net+=$totitems['nettot']*$totitems['qty'];
 		$discountamt+=$totitems['discountamt']*$totitems['qty'];
 		$count+=$totitems['qty'];
-		if ($totitems['onsale']==1)
-		{
-			$totalOutstanding+=$totitems['grandTot']*$totitems['qty'];
-		}
-		elseif ($totitems['onsale']<>1)
-		{
-			$totalOutstanding+=(($totitems['grandTot']/100)*(100-$custDiscount))*$totitems['qty'];
-		}
+		$totalOutstanding+=$totitems['grandTot']*$totitems['qty'];
 		
 	}
-	
 	#Get credit note
 	$sql_query="select if(abs(actualnet)>0||zero_price=1,actualnet,nettot) nettot,if(abs(actualvat)>0||zero_price=1,actualvat,vattot) vattot
 			, if(abs(actualgrand)>0||zero_price=1,actualgrand,grandtot) grandTot, (grandTot-actualgrand) discountamt, onsale, qty 
@@ -355,24 +350,21 @@ function bagTotals($order)
 		$vat-=$totitems['vattot']*$totitems['qty'];
 		$net-=$totitems['nettot']*$totitems['qty'];
 		$discountamt-=$totitems['discountamt']*$totitems['qty'];
-		//$count+=$totitems['qty'];
-		if ($totitems['onsale']==1)
-		{
-			$totalOutstanding-=$totitems['grandTot']*$totitems['qty'];
-		}
-		elseif ($totitems['onsale']<>1)
-		{
-			$totalOutstanding-=(($totitems['grandTot']/100)*(100-$custDiscount))*$totitems['qty'];
-		}
-	
+		$count+=$totitems['qty'];
+		$totalOutstanding-=$totitems['grandTot']*abs($totitems['qty'])*-1;
+
 	}
 			
 	$sql_query="select sum(PayValue) grandTot from tenders where transno = ".$orderno;
 	$results=$db_conn->query($sql_query);
 	$result=mysqli_fetch_array($results);
-	
 	$paid=$result['grandTot'];
 	
+	$sql_query="select sum(PayValue) grandTot from spendpottenders where transno = ".$orderno;
+	$results=$db_conn->query($sql_query);
+	$result=mysqli_fetch_array($results);
+	$paid+=$result['grandTot'];
+
 	$totalOutstanding=round(($totalOutstanding-$paid),2);
 		
 	return array('total' =>$total, 'count'=>$count, 'vat'=>$vat, 'net'=>$net, 'paid' => $paid, 'discount' => $custDiscount, 'discountamt' => $discountamt, 'outstanding'=> $totalOutstanding);
@@ -442,7 +434,7 @@ function getCustomer($orderno)
 	}
     $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
     $custref=getOrderDetail($orderno, 'custref', $till);
-	$sql_query="select title,forename, lastname, email, custid from customers where company=$company and custid=$custref";
+	$sql_query="select title,forename, lastname, email, custid, discount from customers where company=$company and custid=$custref";
     $results=$db_conn->query($sql_query);
     $result=mysqli_fetch_array($results);
     return $result;
@@ -459,43 +451,51 @@ function appro($lineno)
 	$results=$db_conn->query($sql_query);
 
 	$whichway=mysqli_fetch_array($results);
-
+    
 	if ($whichway['status']=='A')
 	{
+	    #A means that the line is currently on appro, so we need to unonappro it
 		#Create a negative record first and then a processing record
-		$sql_query="select transno, StockRef, colour, size, sizeindex, qty, netTot, vatTot, grandTot, actualnet, actualvat, actualgrand from orderdetail where transno = $orderno and lineno =$lineno";
+		$sql_query="select transno, StockRef, colour, size, sizeindex, qty, netTot, vatTot, grandTot, actualnet, actualvat, actualgrand 
+            from orderdetail where transno = $orderno and lineno =$lineno";
 		$newrecords=$db_conn->query($sql_query);
 		$newrecord=mysqli_fetch_array($newrecords);
+		
+		#So if actual grand is empty, fill with NULL for insert
 		if ($newrecord['actualgrand']=="")
 		{
 			$newrecord['actualgrand']='NULL';
 			$newrecord['actualvat']='NULL';
 			$newrecord['actualnet']='NULL';
 		}
+		
 		$nextline=getOrderLinesCnt();
 		#get costprice
 		$sql_query="select costprice from stock where Stockref = '".$newrecord['StockRef']."' and colour = '".$newrecord['colour']."'";
 		$costprices=$db_conn->query($sql_query);
 		$costprice=mysqli_fetch_array($costprices);
 		
-		$sql_query="insert into orderdetail (onsale,transno, StockRef, colour, size, sizeindex, lineno, qty, status, netTot, vatTot, grandTot, costprice, actualNet, actualVat, actualgrand) values (".$newrecord['onsale'].",$orderno,'".$newrecord['StockRef']."','".$newrecord['colour']
+		if ($costprice['costprice']=="")
+		{
+		    $costprice['costprice']=0;
+		}
+		
+		#Create a row which is X status (shows we HAVE BEEN onappro)
+		$sql_query="insert into orderdetail (transno, StockRef, colour, size, sizeindex, lineno, qty, status, netTot, vatTot, grandTot, costprice, actualNet, actualVat, actualgrand) 
+                values ($orderno,'".$newrecord['StockRef']."','".$newrecord['colour']
 				."','".$newrecord['size']."',".$newrecord['sizeindex'].",".($nextline+1).",".($newrecord['qty']*-1).",'X',".$newrecord['netTot'].",".$newrecord['vatTot'].",".$newrecord['grandTot'].",".$costprice['costprice']."
 						,".$newrecord['actualnet'].",".$newrecord['actualvat'].",";
-		if ($newrecord['actualgrand']=="")
-		{
-				$sql_query.="NULL)";
-		}
-		else
-		{
-			$sql_query.=$newrecord['actualgrand'].")";
-		}
+		$sql_query.=$newrecord['actualgrand'].")";
+	
+
 		$negrecord=$db_conn->query($sql_query);
 		
-		#Take original line off appro
+		#Take original line off appro and set to the +ve stock of the -ve stock above
 		$sql_query="update orderdetail set status = 'X' where transno = $orderno and lineno = $lineno";
 		$doit=$db_conn->query($sql_query);
-		
-		$sql_query="insert into orderdetail (transno, StockRef, colour, size, sizeindex, lineno, qty, status, netTot, vatTot, grandTot,costprice, actualNet, actualVat, actualgrand) values ($orderno,'".$newrecord['StockRef']."','".$newrecord['colour']
+
+		$sql_query="insert into orderdetail (transno, StockRef, colour, size, sizeindex, lineno, qty, status, netTot, vatTot, grandTot,costprice, actualNet, actualVat, actualgrand) 
+                values ($orderno,'".$newrecord['StockRef']."','".$newrecord['colour']
 				."','".$newrecord['size']."',".$newrecord['sizeindex'].",".($nextline+2).",".($newrecord['qty']*1).",'P',".$newrecord['netTot'].",".$newrecord['vatTot'].",".$newrecord['grandTot'].",".$costprice['costprice']."
 						,".$newrecord['actualnet'].",".$newrecord['actualvat'].",";
 		if ($newrecord['actualgrand']=="")
@@ -506,12 +506,19 @@ function appro($lineno)
 		{
 			$sql_query.=$newrecord['actualgrand'].")";
 		}
-		$doit2=$db_conn->query($sql_query);			
+		
+		
+ 		$doit2=$db_conn->query($sql_query); 			
 	}
 	else 
 	{
 		$sql_query="update orderdetail set status = 'A' where transno = $orderno and lineno = $lineno";
 		$results=$db_conn->query($sql_query);
+		$sql_query="delete from orderdetail where status = 'X' and Stockref = '".$whichway['StockRef']."' and colour = '".$whichway['colour']."' and sizeindex = '".$whichway['sizeindex']."'";
+		$results=$db_conn->query($sql_query);
+		$sql_query="delete from orderdetail where status = 'P' and Stockref = '".$whichway['StockRef']."' and colour = '".$whichway['colour']."' and sizeindex = '".$whichway['sizeindex']."'";
+		$results=$db_conn->query($sql_query);
+		
 	}
 	return array('sku'=>$whichway['StockRef'], 'colour'=>$whichway['colour'], 'size'=>$whichway['size'], 'qty'=>$whichway['qty']);
 }
@@ -536,7 +543,7 @@ function getTenderTotals()
         return array('paid' =>$payamount, 'count'=>$paycount, 'vat'=>$vatamount, 'net'=>$netamount);
 }
 
-function stockBalance($sku, $colour, $date)
+function stockBalance($sku, $colour, $date="")
 {
 	#Date must be yyyy-mm-dd
 	session_start();
@@ -553,7 +560,8 @@ function stockBalance($sku, $colour, $date)
 	$stockrecord=mysqli_fetch_array($results);
 
 	#Apply Stock Adjustments
-	$sql_query="select sa.qty, sa.sizeid, sr.polarity from stkAdjustments sa, stkadjreason sr where sa.reasonid = sr.id and sa.sku = '".$sku."' and sa.colour = '".$colour."'";
+	$sql_query="select sa.qty, sa.sizeid, sr.polarity from stkAdjustments sa, stkadjreason sr 
+    where sa.reasonid = sr.id and sa.sku = '".$sku."' and sa.colour = '".$colour."'";
 
 	if ($date<>"")
 	{
@@ -567,7 +575,7 @@ function stockBalance($sku, $colour, $date)
 	}
 	#Build adjustments per stock at datetrack
 	$sql_query="select  orderdetail.status, sizeindex,  sum(qty) qty from orderdetail, orderheader where orderdetail.transno = orderheader.transno and 
-			orderdetail.Stockref = '".$sku."' and orderdetail.colour='".$colour."' and orderdetail.status in ('W','C','J')";
+			orderdetail.Stockref = '".$sku."' and orderdetail.colour='".$colour."' and orderdetail.status in ('W','C','J','S')";
 	
 	if ($date<>"")
 	{
@@ -637,7 +645,7 @@ function discountLine($sku,$amount,$overridePrice,$lineno)
 			$actualnet=$amount;
 			$actualvat=0;
 		}
-		if ($actualgrand==0)
+		if ($actualgrand<0.01)
 		{
 			#We have overidden the price to zero
 			$zero_price=1;
@@ -662,7 +670,7 @@ function discountLine($sku,$amount,$overridePrice,$lineno)
 			$netTot=$amount;
 			$vatTot=0;
 		}
-		if ($grandTot==0)
+		if ($grandTot<0.01)
 		{
 			#We have overidden the price to zero
 			$zero_price=1;
@@ -755,7 +763,7 @@ function decodeBarcode($barcode)
 	$stkdetails=$db_conn->query($sql_query);
 	$stkdetail=mysqli_fetch_array($stkdetails);
 
-	if (substr($sizebarcode,0,1)=="A")
+	if (substr($sizebarcode,0,1)=="A" || substr($sizebarcode,0,1)=="a" )
 	{
 		#Newly encoded using new barcode technique
 		$sizeindex=substr($sizebarcode,1,2);
@@ -802,9 +810,23 @@ function openDrawer($receipt)
 	}
 
 	$doit=$db_conn->query($sql_query);
-	
-	#Open the drawer
-	$return=exec('/bin/echo -e -n "\x1b\x70\x30\x40\x50" | lp -o raw -h '.$receipt_host.' -d '.$receipt_printer);
+
+    #Open the drawer
+    if ($local_printer<>1)
+    {
+        if ($receipt_host=="")
+        {
+            $return=exec('/bin/echo -e -n "\x1b\x70\x30\x40\x50" | lp -o raw -d '.$receipt_printer);
+        }
+        else
+        {
+            $return=exec('/bin/echo -e -n "\x1b\x70\x30\x40\x50" | lp -o raw -h '.$receipt_host.' -d '.$receipt_printer);
+        }
+    }
+    else 
+    {
+	    echo "<script>$.get('//$local_printer_drawer/drawer.php',function(){});</script>";
+    }
 				
 }
 
@@ -850,7 +872,7 @@ function createSpendPot($type, $action, $amount, $custref, $orderno, $reason, $i
 		else
 		{
 			$sql_query="insert into spendPots (orderno, custref, reason, type, amount, tenderNo, expireDate)
-						values (".$orderno.",".$custref.",'".$reason."', '".$type."', $amount, '".$tenderNo."', CURDATE() + INTERVAL 6 MONTH)";
+						values (".$orderno.",".$custref.",'".$reason."', '".$type."', $amount, '".$tenderNo."', CURDATE() + INTERVAL 7 MONTH)";
 			$doit=$db_conn->query($sql_query);
 			$return_code=mysqli_insert_id($db_conn);
 			if ($reason=="Overflow")

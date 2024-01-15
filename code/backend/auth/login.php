@@ -1,3 +1,27 @@
+<?php 
+
+include '../config.php';
+include '../functions/auth_func.php';
+session_start();
+
+if ($_REQUEST['action']=="check")
+{
+    if ($_SESSION['CO']<>'')
+    {
+        print_r($_SESSION);
+        $_SESSION['CO'] = $_SESSION['CO'];
+        echo "success";
+
+    }
+    else {
+        $auth=deauthenticate();
+        $force="logout";
+        echo "error";
+    }
+    return 0;
+    exit();
+}
+?>
 <script type="text/javascript">
 
 $('#password').keypress(function (e) {
@@ -10,13 +34,16 @@ $('#password').keypress(function (e) {
 function login()
 {
          $('#dialog').append('<div id=temp></div>');
-                 $('#dialog').css('top','20%');
-                 $('#dialog').css('left','45%');
-                 $('#dialog').css('margin-left','-14%');	
-		 $('#password').focus();
-         $('#temp').load('./auth/login.php?action=login');
-         $('#dimmer').show();
+         $('#temp').load('./auth/login.php?action=login', function(){
+	 var wid=$('#dialog').width();
+	$('#dialog').css('top','20%');
+	$('#dialog').css('left','50%');
+	$('#dialog').css('margin-left',wid/2*-1);
+	$('#dialog').css('border-radius','25px');
          $('#dialog').show();
+	 $('#password').focus();
+         $('#dimmer').show();
+	});
 }
 
 function send(username,co)
@@ -27,7 +54,7 @@ function send(username,co)
 
 function logout()
 {
-        $('#login').load('../auth/login.php?action=logout');
+        $('#login').load('./auth/login.php?action=logout');
 }
 
 $(document).ready(function(){
@@ -49,32 +76,11 @@ function passwd(username,co)
 </script>
 <?php
 
-include '../config.php';
-include '../functions/auth_func.php';
-session_start();
 
-if ($_REQUEST['action']=="check")
-{
-    if ($_SESSION['CO']<>'')
-    {
-        $_SESSION['CO'] = $_SESSION['CO'];
-        echo "Session";
-        exit();
-    }
-    else {
-        echo "No session";
-        $auth=deauthenticate();
-        $_REQUEST['action']="logout";
-    }
-}
-
-
-
-if ($_REQUEST['action']=='logout')
+if ($_REQUEST['action']=='logout' || $force=="logout")
 {
 	$auth=deauthenticate();
 	 echo "<script type=text/javascript>location.reload(); </script>";
-	exit();
 }
 
 $db_conn=mysqli_connect($db_host,$db_username, $db_password, $db_name);
@@ -128,7 +134,7 @@ if ($_REQUEST['action']=="login")
 	{
 		if ($result['multi']==0)
 		{
-			echo "<li onclick=\"javascript:selectco('".$result['username']."');\">";
+			echo "<li onclick=\"javascript:passwd('".$result['username']."',1);\">";
 			echo "<table class=users>";
 			echo "<tr><td><img class=logimg src=./images/multi.png /></td></tr>";
 			echo "<tr><td align=center>".$result['username']."</td></tr>";
@@ -161,13 +167,6 @@ if ($_REQUEST['action']=="login")
 
 }
 
-elseif ($_REQUEST['action']=="selectco")
-{
-	echo "<p>Select Company</p>";
-	echo "<p width=100%><table align=center><tr><td><img onclick=\"passwd('".$_REQUEST['username']."',1);\" class=logimg src=./images/heart.jpg /></td><td><img onclick=\"passwd('".$_REQUEST['username']."',1);\" class=logimg  src=./images/leaves.png /></td></tr></table></p>";
-	echo "<script type=text/javascript>$('#selectco').slideToggle('fast');</script>";	
-
-}
 
 elseif ($_REQUEST['action']=="passwd")
 {
@@ -184,14 +183,21 @@ elseif ($_REQUEST['action']=="passwd")
 <script type=text/javascript>
 setInterval(function(){
     $.ajax({ 
+        	type: "POST",
         	url: "./auth/login.php?action=check", 
         	success: 
-            		function(){
-        				
+            		function(msg){
+        		
+            				if (msg=="error")
+            				{
+                				
+            					location.reload();
+            				}
     					}
 			, error:
 					function(){
-						location.reload();
+						
+						
 			}
 		});
 	}, 30000);

@@ -37,16 +37,21 @@ if ($action=="add")
 				#Make a note of IDs created for receipt
 				openDrawer(0);
 				printPettyCash(mysqli_insert_id($db_conn));
+				if ($local_printer==1)
+				{
+				    echo "<script type=text/javascript>printJS('$local_printer_path/printing.pdf');</script>";
+				}
 				createRollEntry('', 'Petty Cash '.$direction, '0', $_REQUEST['value'.$i], 'A');
 		}	
 	}
-	echo "<script type=text/javascript>location.reload();</script>";
+			
+	echo "<script type=text/javascript>setTimeout(function(){location.reload();},2000);</script>";
 	deauthenticate();
 	
 }
 
 #Generate selection html
-$sql_query="select typeid, Descr from pettycashtype";
+$sql_query="select typeid, Descr from pettycashtype order by Descr";
 $results=$db_conn->query($sql_query);
 $selecthtml="<option></option>";
 while ($type=mysqli_fetch_array($results))

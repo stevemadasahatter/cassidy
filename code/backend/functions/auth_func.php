@@ -208,6 +208,16 @@ function getItemSize($sizeindex, $sku)
 	return $result['size'];
 }
 
+function getItemSizeDesc($sku)
+{
+    include '../config.php';
+    $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
+    $sql_query="select sizes.sizekeydescription from style, sizes where style.sizekey=sizes.sizekey and style.sku='".$sku."'";
+    $results=$db_conn->query($sql_query);
+    $result=mysqli_fetch_array($results);
+    return $result['sizekeydescription'];
+}
+
 function getItemPrice($sku)
 {
 	include '../config.php';
@@ -403,10 +413,13 @@ function getTenderTotals()
         return array('paid' =>$payamount, 'count'=>$paycount, 'vat'=>$vatamount, 'net'=>$netamount);
 }
 
-function stockBalance($sku, $colour, $date)
+function stockBalance($sku, $colour, $date="")
 {
 	#Date must be yyyy-mm-dd
-	session_start();
+	if (!isset($_SESSION))
+	{
+	   session_start();
+	}
 	include '../config.php';
 	$db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
 	
@@ -422,7 +435,7 @@ function stockBalance($sku, $colour, $date)
 
 	#Build adjustments per stock at datetrack
 	$sql_query="select  orderdetail.status, orderdetail.sizeindex,  sum(qty) qty from orderdetail, orderheader where orderdetail.transno = orderheader.transno and 
-			orderdetail.Stockref = '".$sku."' and orderdetail.colour='".$colour."' and orderdetail.status in ('W','C','J')";
+			orderdetail.Stockref = '".$sku."' and orderdetail.colour='".$colour."' and orderdetail.status in ('W','C','J','S')";
 	
 	if ($date<>"")
 	{

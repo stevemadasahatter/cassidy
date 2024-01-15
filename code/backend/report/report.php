@@ -13,6 +13,7 @@ if ($action=="")
 	echo "<tr>";
 	$menu=array();
 	$categories=array();
+	
 	if ($handle = opendir('./configs/')) 
 	{
 		while (false !== ($entry = readdir($handle))) 
@@ -25,7 +26,7 @@ if ($action=="")
 			}
 		}
 	}
-	
+	ksort($menu);
 	$i=0;
 	foreach ($menu as $key =>$category)
 	{
@@ -38,6 +39,7 @@ if ($action=="")
 	    $j=0;
 	    foreach ($menu[$key]['data'] as $report)
 	    {
+	        array_multisort(array_column($menu[$key],'data'),SORT_ASC,$menu[$key]);
 	        echo "<tr><td onclick=\"javascript:populate_filters('".$menu[$key]['entry'][$j]."');\">$report</td></tr>";
 	        $j++;
 	    }
@@ -64,7 +66,7 @@ if ($action=="show")
 	}
 	
 	echo "<h2>Selected Dataset - $dataset</h2><input type=hidden id=dataset value=\"".$_REQUEST['dataset']."\" />";
-	echo "<div id=detail><table><tr><th>Filter</th><th>Option</th><th style=\"width:85px;text-align:left;\">GroupBy</th></tr>";
+	echo "<div id=detail><table><tr><th>Filter</th><th>Option</th><th style=\"width:35px;text-align:left;\">GroupBy</th><th style=\"width:35px;text-align:left;\">Wildcard</th></tr>";
 	$i=0;
 	foreach ($filters[0] as $filter)
 	{
@@ -79,12 +81,22 @@ if ($action=="show")
 		}
 		if ($filters[2][$i]<>"")
 		{
-			echo "</td><td style=width:85px;><input style=width:85px; type=text id=\"".$filter."grp\"></tr>";
+			echo "</td><td style=width:45px;><input style=width:85px; type=text id=\"".$filter."grp\"></td>";
 		}
 		else
 		{
-			echo "</td></tr>";
+			echo "</td><td></td>";
 		}
+		
+		if ($filter=="StockRef")
+		{
+		    echo "<td><input style=\"width:35px;text-align:left;\" type=checkbox id=\"".$filter."like\"></td></tr>";
+		}
+		else 
+		{
+		    echo "</td></tr>";
+		}
+		
 		$i++;
 	}
 	echo "<tr><td></td><td colspan=2><button id=save>Save</button><button onclick=\"javascript:download_report();\">Download</button><button id=submit>Run</button></td></tr>";
@@ -131,7 +143,7 @@ $(function()
 	$('#datein').datepicker({      
 		  changeMonth: true,
 	      changeYear: true,
-	      yearRange:"2003:2020"});
+	      yearRange:"2003:2025"});
 	$('#dateout').datepicker({      
 		  changeMonth: true,
 	      changeYear: true});
@@ -192,6 +204,16 @@ $('#submit').click(function()
 
 	$('#detail').find('input[id*=grp]').each(function(){
 		getString=getString+$(this).attr('id')+'='+$(this).val()+'&';
+	});
+	$('#detail').find('input[id*=like]').each(function(){
+		if ($(this).is(":checked"))
+		{
+			getString=getString+$(this).attr('id')+'=1&';
+		}
+		else
+		{
+			getString=getString+$(this).attr('id')+'=0&';
+		}
 	});
 	$('#detail').find('input[type=text]').each(function(){
 		getString=getString+$(this).attr('id')+'='+$(this).val()+'&';

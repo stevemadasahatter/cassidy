@@ -1,19 +1,19 @@
 <?php
 
-function getSelect($type,$selectedid)
+function getSelect($type,$selectedid="")
 {
 	$sql_query['companies']="select coname, conum from companies";
 	$sql_query['brands']="select nicename, id from brands where active=1 order by 1";
 	$sql_query['category']="select nicename, id from category order by 1";
-	$sql_query['pettycashtype']="select Descr,typeid from pettycashtype order by 2";
+	$sql_query['pettycashtype']="select Descr,typeid from pettycashtype order by 1";
 	$sql_query['seasons']="select season, id from seasons order by 1";
-	$sql_query['sizekey']="select sizekeydescription, sizekey from sizes order by 2";
-	$sql_query['Productgroup']="select nicename,id from ProductGroup order by 2";
-	$sql_query['colours']="select nicename, id from colours order by 2";
+	$sql_query['sizekey']="select sizekeydescription, sizekey from sizes order by 1";
+	$sql_query['Productgroup']="select nicename,id from ProductGroup order by 1";
+	$sql_query['colours']="select nicename, id from colours order by 1";
 	$sql_query['colours2']="select nicename, colour from colours order by 1";
-	$sql_query['vatkey']="select nicename, vatkey from vatrates order by 2";
-	$sql_query['stkadjReason']="select nicename, id from stkadjReason order by 2";
-	$sql_query['paytype']="select PayDescr, payId from TenderTypes order by 2";
+	$sql_query['vatkey']="select nicename, vatkey from vatrates order by 1";
+	$sql_query['stkadjReason']="select nicename, id from stkadjReason order by 1";
+	$sql_query['paytype']="select PayDescr, payId from TenderTypes order by 1";
 	
 include '../config.php';
 $db_conn=mysqli_connect($db_host, $db_username, $db_password, $db_name);
@@ -25,11 +25,11 @@ while ($item=mysqli_fetch_array($results))
 {
 	if ($item[1]==$selectedid)
 	{
-		$html.="<option value=".$item[1]." selected>".$item[0]."</option>";
+		$html.="<option value=\"".$item[1]."\" selected>".$item[0]."</option>";
 	}
 	else
 	{
-		$html.="<option value=".$item[1].">".$item[0]."</option>";
+		$html.="<option value=\"".$item[1]."\">".$item[0]."</option>";
 
 	}
 }
@@ -85,11 +85,11 @@ function fuzzygetSelect($type, $match)
 	{
 		if ($item[1]==$selectedid)
 		{
-			$html.="<option value=".$item[1]." selected>".$item[0]."</option>";
+			$html.="<option value=\"".$item[1]."\" selected>".$item[0]."</option>";
 		}
 		else
 		{
-			$html.="<option value=".$item[1].">".$item[0]."</option>";
+			$html.="<option value=\"".$item[1]."\">".$item[0]."</option>";
 	
 		}
 	}

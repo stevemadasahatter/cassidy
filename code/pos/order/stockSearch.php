@@ -4,6 +4,7 @@ include '../config.php';
 include '../functions/field_func.php';
 include '../functions/auth_func.php';
 
+echo "<div id=dialog2 style=\"z-index:1000;display:none;position:absolute;width:100%;text-align:center;\"><img onclick=\"hideImg();\" src=/pos/images/cross.png style=\"position:absolute;top:15px;left:63%;\" /><p id=image></p></div>";
 echo "<h2>Product Search</h2>";
         echo "<p align=right width=100%><button onclick=\"javascript:closeDiag();\">Close</button></p>";
         echo "<script type=text/javascript>$('button').button();</script>";
@@ -17,8 +18,9 @@ $seasons=getSelect('seasons',0);
 $colours=getSelect('colours',0);
 $category=getSelect('category',0);
 
-echo "<tr><td><input style=\"width:5px;\" onkeyup=\"javascript:searchItem2();\" id=barcode /></td>
-		<td><input  onkeyup=\"javascript:searchItem2();\" id=sku /></td>
+echo "<tr><td><img style=\"vertical-align:middle;\" onclick=\"javascript:grabBarcode2();\" id=barcodeimg  src=./images/barcode.png />
+                <input onfocus=\"javascript:barcodefocus();\" onblur=\"javascript:barcodeblur();\"  style=\"width:5px;\" onkeyup=\"javascript:searchItem2();\" id=barcode /></td>
+		<td><input  onkeyup=\"javascript:searchItem2();\" autocomplete=\"off\" id=sku /></td>
 		<td><select onchange=\"javascript:searchItem2();\" id=brand >$brands</select></td>
 		<td><select onchange=\"javascript:searchItem2();\" id=season >$seasons</select></td>
 		<td><select onchange=\"javascript:searchItem2();\" id=colour>$colours</select></td>
@@ -36,6 +38,30 @@ echo "</table>";
 $(document).ready(function(){
 	$('#barcode').focus();
 });
+
+function hideImg()
+{
+	$('#dialog2').hide();
+}
+
+function grabBarcode2()
+{
+	$('#barcode').focus();
+}
+
+function barcodefocus()
+{
+	$('#barcodeimg').removeClass('barcodeoff');
+	$('#barcodeimg').addClass('barcodeon');
+	$('#item').val('');
+	$('#barcode').val('');
+}
+
+function barcodeblur()
+{
+	$('#barcodeimg').removeClass('barcodeon');
+	$('#barcodeimg').addClass('barcodeoff');
+}
 
 function searchItem2()
 {

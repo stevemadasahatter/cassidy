@@ -1,2 +1,6 @@
 0,10,20,30,40,50 * * * * /usr/bin/php /var/www/updatedns.php >> /var/log/cron.log
+#0,10,20,30,40,50 * * * *  cd /var/www/backend/website;/usr/bin/php /var/www/backend/website/batch_subsystem.php >> /var/www/backend/website/batch_output.txt
+0,10,20,30,40,50 * * * *  cd /var/www/backend/website;/usr/bin/php /var/www/backend/website/batch_sub_m2.php >> /var/www/backend/website/batch_output_m2.txt
+00 18 * * * cd /var/www/backend/website;/usr/bin/php /var/www/backend/website/syncer_report.php
+05 18 * * * /var/www/backend/report/automated_k.sh
 

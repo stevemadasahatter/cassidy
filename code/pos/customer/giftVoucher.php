@@ -140,18 +140,25 @@ elseif ($_REQUEST['action']=="pay")
 	$deauth=deauthenticate();
 	clearReadout();
 	echo "<div id=receipt>";
-               echo "<script type=text/javascript>$('button').button();</script>";
-               echo "<button onclick=\"receipt('print', ".$voucherid.")\">Re-print Receipt</button>";
-     echo "</div>";
-     
+       echo "<script type=text/javascript>$('button').button();</script>";
+       if ($local_printer==1)
+       {
+           echo "<button style=\"font-size:8pt;\" onclick=\"printJS('$local_printer_path/printing.pdf');\">Print Voucher</button>";
+       }
+       else
+       {
+           echo "<button style=\"font-size:8pt;\" onclick=\"receipt('print', ".$voucherid.",$changedue, 'true')\">Print Voucher</button>";
+       }
+       echo "</div>";
+               
 }
 
 elseif ($_REQUEST['action']=='print')
 {
-	$foo=printSpendPot($_REQUEST['voucherid']);
-	echo "<script type=text/javascript>$('button').button();</script>";
-	echo "<button onclick=\"receipt('print', ".$_REQUEST['voucherid'].")\">Re-print Receipt</button>";
-	
+    $foo=printSpendPot($_REQUEST['voucherid']);
+    echo "<script type=text/javascript>$('button').button();</script>";
+    echo "<button onclick=\"receipt('print', ".$_REQUEST['voucherid'].")\">Print Voucher</button>";
+    
 }
 
 

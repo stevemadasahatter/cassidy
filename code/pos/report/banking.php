@@ -113,21 +113,21 @@ and pettycash.transtype=pettycashtype.typeid";
 	echo "<tr><td>Cash Taken</td><td class=bankmoney>$cashcnt</td><td class=bankmoney>&pound;".number_format($cash,2)."</td></tr>";
 	echo "<tr><td>Petty Cash Out</td><td class=bankmoney>$totalpcashoutcnt</td><td class=bankmoney>&pound;".number_format($totalpcashout,2)."</td></tr>";
 	echo "<tr><td>Petty Cash In</td><td class=bankmoney>$totalpcashincnt</td><td class=bankmoney>&pound;".number_format($totalpcashin,2)."</td></tr>";
-	echo "<tr><td><b>TOTAL</b></td><td></td><td class=bankmoney>&pound;".number_format($cash-$totalpcashout+$totalpcashin,2)."</td></tr>";
+	echo "<tr><td><b>TOTAL</b></td><td></td><td class=bankmoney>&pound;".number_format($cash-$totalpcashout-$totalpcashin,2)."</td></tr>";
 	echo "<tr><td colspan=3><hr></td></tr>";
 	echo "<tr><td>Starting Float</td><td></td><td class=bankmoney>&pound;".number_format($pettycashStart['startval'],2)."</td></tr>";
 	
 	if ($type<>"print")
 	{
 		echo "<tr style=\"font-weight:bold;\"><td>Closing float</td><td></td><td class=bankmoney>&pound;<span id=bankcash>".number_format(($pettycashStart['startval']+$cash-$totalpcashout-$totalpcashin),2)."</span></td></tr>";
-		echo "<tr style=\"font-weight:bold;\"><td>Total Cash to bank</td><td></td><td class=bankmoney>&pound;<input onkeyup=\"javascript:updatetot();\" style=\"width:70px;\" type=text id=banking value=".number_format(0.00,2)."></input></td></tr>";
+		echo "<tr style=\"font-weight:bold;\"><td>Total Cash to bank</td><td></td><td class=bankmoney>&pound;<input onkeyup=\"javascript:updatetot();\" style=\"width:70px;\" type=text id=banking value=\"".number_format(0.00,2)."\"></input></td></tr>";
 	}
 	else 
 	{
-		echo "<tr style=\"font-weight:bold;\"><td>Closing float</td><td></td><td class=bankmoney>&pound;<span id=bankcash>".number_format(($pettycashStart['startval'])+$cash-$totalpcashout+$totalpcashin-$_REQUEST['bank'],2)."</span></td></tr>";
+		echo "<tr style=\"font-weight:bold;\"><td>Closing float</td><td></td><td class=bankmoney>&pound;<span id=bankcash>".number_format(($pettycashStart['startval'])+$cash-$totalpcashout-$totalpcashin-$_REQUEST['bank'],2)."</span></td></tr>";
 		echo "<tr style=\"font-weight:bold;\"><td>Total Cash to bank</td><td></td><td class=bankmoney>&pound;".number_format($_REQUEST['bank'],2)."</td></tr>";
 	}
-	echo "<input type=hidden id=starting value=".($cash-$totalpcashout+$totalpcashin)."></input>";
+	echo "<input type=hidden id=starting value=".($cash-$totalpcashout-$totalpcashin)."></input>";
 	echo "<input type=hidden id=cash value=".$pettycashStart['startval']."></input>";
 	echo "</table>";	
 		
@@ -149,13 +149,26 @@ and pettycash.transtype=pettycashtype.typeid";
 	{
 		$html2=generic_header(0);
 		$html2.=$html;
-		print_action($html2,$receipt_printer, 'false');
+               if ($local_printer==1)
+                {
+                        print_action($html2,$receipt_printer, false,'false');
+
+                }
+                else
+                {
+                        print_action($html2,$receipt_printer, false,'true');
+                }
+
 		$EODID=getConfig('EODID-'.$company);
-		$sql_query="update tilldrawer set closeval=".($pettycashStart['startval']+$cash-$totalpcashout+$totalpcashin-$_REQUEST['bank'])." where EODID=$EODID";
-		echo $sql_query;
+		$sql_query="update tilldrawer set closeval=".($pettycashStart['startval']+$cash-$totalpcashout-$totalpcashin-$_REQUEST['bank'])." where EODID=$EODID";
 		$doit=$db_conn->query($sql_query);
 		deauthenticate();
-		echo "<script type=text/javascript>location.reload();</script>";
+		if ($local_printer==1)
+		{
+			echo "<script type=text/javascript>printJS('$local_printer_path/printing.pdf');</script>";
+		        echo "<script type=text/javascript>setTimeout(function(){location.reload();},2000);</script>";
+		}
+		        echo "<script type=text/javascript>setTimeout(function(){location.reload();},2000);</script>";
 	}
 	else
 	{
